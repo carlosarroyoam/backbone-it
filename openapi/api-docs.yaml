@@ -1,4 +1,4 @@
-openapi: 3.0.3
+openapi: 3.1.0
 info:
   title: Backbone TI WISP Management System API
   description: |
@@ -22,47 +22,27 @@ tags:
     description: API authentication and authorization
   - name: Customers
     description: Customer account management
+  - name: Plans
+    description: Plans
   - name: Subscriptions
-    description: Service subscriptions and plans
+    description: Service subscriptions
   - name: Network
-    description: Network topology and devices
+    description: Network topology
+  - name: Network devices
+    description: Network devices
   - name: Billing
     description: Balance, transactions, and invoices
   - name: Support
     description: Helpdesk tickets
+  - name: RADIUS
+    description: RADIUS and PPPoE authentication integration
 
 paths:
-  /auth/register:
-    post:
-      tags:
-        - Authentication
-      summary: Register a new customer account
-      operationId: registerCustomer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateCustomerRequest"
-      responses:
-        "201":
-          $ref: "#/components/responses/Created"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "422":
-          $ref: "#/components/responses/UnprocesableEntity"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-
   /auth/login:
     post:
       tags:
         - Authentication
-      summary: Authenticate and get API token
+      summary: Authenticates and gets API token
       operationId: login
       requestBody:
         required: true
@@ -84,7 +64,8 @@ paths:
                   token_type:
                     type: string
                     description: Type of token (Bearer)
-                    example: Bearer
+                    examples: 
+                      - Bearer
                   expires_in:
                     type: integer
                     description: Token expiration time in seconds
@@ -95,7 +76,33 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "422":
-          $ref: "#/components/responses/UnprocesableEntity"
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Registers a new customer account
+      operationId: registerCustomer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCustomerRequest"
+      responses:
+        "201":
+          $ref: "#/components/responses/Created"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
@@ -103,7 +110,7 @@ paths:
     get:
       tags:
         - Authentication
-      summary: List API keys for current customer
+      summary: Lists API keys for current customer
       operationId: findAllApiKeys
       parameters:
         - $ref: "#/components/parameters/PageParam"
@@ -122,17 +129,17 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "422":
-          $ref: "#/components/responses/UnprocesableEntity"
+          $ref: "#/components/responses/UnprocessableEntity"
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
-        - bearerAuth: []
+        - BearerAuth: []
 
   /customers:
     get:
       tags:
         - Customers
-      summary: List all customers
+      summary: Lists all customers
       operationId: findAllCustomers
       parameters:
         - $ref: "#/components/parameters/PageParam"
@@ -158,17 +165,17 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "422":
-          $ref: "#/components/responses/UnprocesableEntity"
+          $ref: "#/components/responses/UnprocessableEntity"
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
-        - bearerAuth: []
+        - BearerAuth: []
 
   /customers/{customerId}:
     get:
       tags:
         - Customers
-      summary: Get customer by ID
+      summary: Gets customer by ID
       operationId: findCustomerById
       parameters:
         - name: customerId
@@ -184,7 +191,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/CustomerDto"
+                $ref: "#/components/schemas/CustomerResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -196,14 +203,13 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
-        - bearerAuth: []
+        - BearerAuth: []
 
-  /customers/{customerId}/suspend:
-    post:
+    put:
       tags:
         - Customers
-      summary: Suspend a customer account
-      operationId: suspendCustomer
+      summary: Updates a customer by ID
+      operationId: updateCustomer
       parameters:
         - name: customerId
           in: path
@@ -212,78 +218,6 @@ paths:
           schema:
             type: integer
             format: int64
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/SuspendCustomerRequest"
-      responses:
-        "204":
-          $ref: "#/components/responses/NoContent"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "422":
-          $ref: "#/components/responses/UnprocesableEntity"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-      security:
-        - bearerAuth: []
-
-  /customers/{customerId}/activate:
-    post:
-      tags:
-        - Customers
-      summary: Activate a suspended customer
-      operationId: activateCustomer
-      parameters:
-        - name: customerId
-          in: path
-          required: true
-          description: Unique identifier of the customer
-          schema:
-            type: integer
-            format: int64
-      responses:
-        "204":
-          $ref: "#/components/responses/NoContent"
-      security:
-        - bearerAuth: []
-
-  /customers/me:
-    get:
-      tags:
-        - Customers
-      summary: Get current customer profile
-      operationId: getCurrentCustomer
-      responses:
-        "200":
-          description: Customer profile
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/CustomerDto"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-      security:
-        - bearerAuth: []
-
-    patch:
-      tags:
-        - Customers
-      summary: Update current customer profile
-      operationId: updateCurrentCustomer
       requestBody:
         required: true
         content:
@@ -300,17 +234,108 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "422":
-          $ref: "#/components/responses/UnprocesableEntity"
+          $ref: "#/components/responses/UnprocessableEntity"
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
-        - bearerAuth: []
+        - BearerAuth: []
+
+    delete:
+      tags:
+        - Customers
+      summary: Deletes a customer by ID
+      operationId: deleteCustomer
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          description: Unique identifier of the customer
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+
+  /customers/{customerId}/suspend:
+    post:
+      tags:
+        - Customers
+      summary:  Suspends a customer by ID
+      operationId: suspendCustomer
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          description: Unique identifier of the customer
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+
+  /customers/{customerId}/activate:
+    post:
+      tags:
+        - Customers
+      summary: Activates a suspended customer by ID
+      operationId: activateCustomer
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          description: Unique identifier of the customer
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
 
   /plans:
     get:
       tags:
-        - Subscriptions
-      summary: List available service plans
+        - Plans
+      summary: Lists available service plans
       operationId: findAllPlans
       parameters:
         - $ref: "#/components/parameters/PageParam"
@@ -330,17 +355,17 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "422":
-          $ref: "#/components/responses/UnprocesableEntity"
+          $ref: "#/components/responses/UnprocessableEntity"
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
-        - bearerAuth: []
+        - BearerAuth: []
 
   /plans/{planId}:
     get:
       tags:
-        - Subscriptions
-      summary: Get service plan details
+        - Plans
+      summary: Gets service plan details
       operationId: findPlanById
       parameters:
         - name: planId
@@ -356,7 +381,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ServicePlanDto"
+                $ref: "#/components/schemas/ServicePlanResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -368,13 +393,13 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
-        - bearerAuth: []
+        - BearerAuth: []
 
   /subscriptions:
     get:
       tags:
         - Subscriptions
-      summary: Get current customer's subscriptions
+      summary: Lists customer subscriptions
       operationId: findAllSubscriptions
       parameters:
         - $ref: "#/components/parameters/PageParam"
@@ -393,16 +418,16 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "422":
-          $ref: "#/components/responses/UnprocesableEntity"
+          $ref: "#/components/responses/UnprocessableEntity"
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
-        - bearerAuth: []
+        - BearerAuth: []
 
     post:
       tags:
         - Subscriptions
-      summary: Create a new subscription
+      summary: Creates a new subscription
       operationId: createSubscription
       requestBody:
         required: true
@@ -420,17 +445,17 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "422":
-          $ref: "#/components/responses/UnprocesableEntity"
+          $ref: "#/components/responses/UnprocessableEntity"
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
-        - bearerAuth: []
+        - BearerAuth: []
 
   /subscriptions/{subscriptionId}:
     get:
       tags:
         - Subscriptions
-      summary: Get subscription details
+      summary: Gets subscription by ID
       operationId: findSubscriptionById
       parameters:
         - name: subscriptionId
@@ -446,7 +471,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/SubscriptionDto"
+                $ref: "#/components/schemas/SubscriptionResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -458,12 +483,12 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
-        - bearerAuth: []
+        - BearerAuth: []
 
     patch:
       tags:
         - Subscriptions
-      summary: Update subscription (change plan)
+      summary: Updates subscription (change plan)
       operationId: updateSubscription
       parameters:
         - name: subscriptionId
@@ -490,17 +515,17 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
         "422":
-          $ref: "#/components/responses/UnprocesableEntity"
+          $ref: "#/components/responses/UnprocessableEntity"
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
-        - bearerAuth: []
+        - BearerAuth: []
 
   /subscriptions/{subscriptionId}/suspend:
     post:
       tags:
         - Subscriptions
-      summary: Suspend a subscription
+      summary:  Suspends a subscription
       operationId: suspendSubscription
       parameters:
         - name: subscriptionId
@@ -514,13 +539,13 @@ paths:
         "204":
           $ref: "#/components/responses/NoContent"
       security:
-        - bearerAuth: []
+        - BearerAuth: []
 
   /subscriptions/{subscriptionId}/activate:
     post:
       tags:
         - Subscriptions
-      summary: Activate a suspended subscription
+      summary: Activates a suspended subscription
       operationId: activateSubscription
       parameters:
         - name: subscriptionId
@@ -533,14 +558,26 @@ paths:
       responses:
         "204":
           $ref: "#/components/responses/NoContent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
       security:
-        - bearerAuth: []
+        - BearerAuth: []
 
   /towers:
     get:
       tags:
         - Network
-      summary: List all towers
+      summary: Lists all towers
       operationId: findAllTowers
       parameters:
         - $ref: "#/components/parameters/PageParam"
@@ -552,7 +589,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PagedTowerResponse"
+                $ref: "#/components/schemas/PageResponsewerResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -560,16 +597,16 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "422":
-          $ref: "#/components/responses/UnprocesableEntity"
+          $ref: "#/components/responses/UnprocessableEntity"
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
-        - bearerAuth: []
+        - BearerAuth: []
 
     post:
       tags:
         - Network
-      summary: Create a new tower
+      summary: Creates a new tower
       operationId: createTower
       requestBody:
         required: true
@@ -589,17 +626,17 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
         "422":
-          $ref: "#/components/responses/UnprocesableEntity"
+          $ref: "#/components/responses/UnprocessableEntity"
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
-        - bearerAuth: []
+        - BearerAuth: []
 
   /towers/{towerId}:
     get:
       tags:
         - Network
-      summary: Get tower with sectors
+      summary: Gets a tower by ID
       operationId: findTowerById
       parameters:
         - name: towerId
@@ -615,7 +652,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TowerDto"
+                $ref: "#/components/schemas/TowerResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -627,13 +664,13 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
-        - bearerAuth: []
+        - BearerAuth: []
 
   /towers/{towerId}/sectors:
     get:
       tags:
         - Network
-      summary: List sectors for a tower
+      summary: Lists sectors for a tower
       operationId: findAllSectorsByTower
       parameters:
         - name: towerId
@@ -659,16 +696,16 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
         "422":
-          $ref: "#/components/responses/UnprocesableEntity"
+          $ref: "#/components/responses/UnprocessableEntity"
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
-        - bearerAuth: []
+        - BearerAuth: []
 
     post:
       tags:
         - Network
-      summary: Create a sector on a tower
+      summary: Creates a sector on a tower
       operationId: createSector
       parameters:
         - name: towerId
@@ -696,18 +733,18 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
         "422":
-          $ref: "#/components/responses/UnprocesableEntity"
+          $ref: "#/components/responses/UnprocessableEntity"
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
-        - bearerAuth: []
+        - BearerAuth: []
 
   /devices:
     get:
       tags:
-        - Network
-      summary: List network devices
-      operationId: findAllDevices
+        - Network devices
+      summary: Lists network devices
+      operationId: findAllNetworkDevices
       parameters:
         - $ref: "#/components/parameters/PageParam"
         - $ref: "#/components/parameters/SizeParam"
@@ -717,7 +754,7 @@ paths:
           description: Filter devices by type
           schema:
             type: string
-            enum: [cpe, ap, router, switch, ont]
+            enum: [CPE, AP, ROUTER, SWITCH, ONT, OTHER]
         - name: status
           in: query
           description: Filter devices by status
@@ -738,17 +775,17 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "422":
-          $ref: "#/components/responses/UnprocesableEntity"
+          $ref: "#/components/responses/UnprocessableEntity"
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
-        - bearerAuth: []
+        - BearerAuth: []
 
     post:
       tags:
-        - Network
-      summary: Register a new network device
-      operationId: createDevice
+        - Network devices
+      summary: Registers a new network device
+      operationId: createNetworkDevice
       requestBody:
         required: true
         content:
@@ -765,18 +802,18 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "422":
-          $ref: "#/components/responses/UnprocesableEntity"
+          $ref: "#/components/responses/UnprocessableEntity"
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
-        - bearerAuth: []
+        - BearerAuth: []
 
   /devices/{deviceId}:
     get:
       tags:
-        - Network
-      summary: Get device details
-      operationId: findDeviceById
+        - Network devices
+      summary: Gets device details
+      operationId: findNetworkDeviceById
       parameters:
         - name: deviceId
           in: path
@@ -791,7 +828,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/NetworkDeviceDto"
+                $ref: "#/components/schemas/NetworkDeviceResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -803,14 +840,14 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
-        - bearerAuth: []
+        - BearerAuth: []
 
   /devices/{deviceId}/assign:
     post:
       tags:
-        - Network
-      summary: Assign device to customer
-      operationId: assignDevice
+        - Network devices
+      summary: Assigns device to customer
+      operationId: assignNetworkDevice
       parameters:
         - name: deviceId
           in: path
@@ -831,7 +868,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/NetworkDeviceDto"
+                $ref: "#/components/schemas/NetworkDeviceResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -841,54 +878,18 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
         "422":
-          $ref: "#/components/responses/UnprocesableEntity"
+          $ref: "#/components/responses/UnprocessableEntity"
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
-        - bearerAuth: []
-
-  /customers/{customerId}/devices:
-    get:
-      tags:
-        - Network
-      summary: Get customer's devices
-      operationId: findAllDevicesByCustomer
-      parameters:
-        - name: customerId
-          in: path
-          required: true
-          description: Unique identifier of the customer
-          schema:
-            type: integer
-            format: int64
-      responses:
-        "200":
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: "#/components/schemas/PagedNetworkDeviceResponse"
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "404":
-          $ref: "#/components/responses/NotFound"
-        "422":
-          $ref: "#/components/responses/UnprocesableEntity"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-      security:
-        - bearerAuth: []
+        - BearerAuth: []
 
   /balance:
     get:
       tags:
         - Billing
-      summary: Get current customer's balance
-      operationId: getBalance
+      summary: Gets current customer's balance
+      operationId: getCustomerBalance
       responses:
         "200":
           description: Balance information
@@ -913,13 +914,13 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
-        - bearerAuth: []
+        - BearerAuth: []
 
   /balance/topup:
     post:
       tags:
         - Billing
-      summary: Add balance to account
+      summary: Adds balance to account
       operationId: createTopup
       requestBody:
         required: true
@@ -937,17 +938,17 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "422":
-          $ref: "#/components/responses/UnprocesableEntity"
+          $ref: "#/components/responses/UnprocessableEntity"
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
-        - bearerAuth: []
+        - BearerAuth: []
 
   /transactions:
     get:
       tags:
         - Billing
-      summary: Get transaction history
+      summary: Gets transaction history
       operationId: findAllTransactions
       parameters:
         - $ref: "#/components/parameters/PageParam"
@@ -973,17 +974,17 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "422":
-          $ref: "#/components/responses/UnprocesableEntity"
+          $ref: "#/components/responses/UnprocessableEntity"
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
-        - bearerAuth: []
+        - BearerAuth: []
 
   /invoices:
     get:
       tags:
         - Billing
-      summary: Get customers invoices
+      summary: Gets current customer's invoices
       operationId: findAllInvoices
       parameters:
         - $ref: "#/components/parameters/PageParam"
@@ -994,7 +995,7 @@ paths:
           description: Filter invoices by status
           schema:
             type: string
-            enum: [DRAFT, SENT, PAID, OVERDUE]
+            enum: [DRAFT, SENT, PAID, OVERDUE, CANCELLED]
       responses:
         "200":
           description: OK
@@ -1009,17 +1010,17 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "422":
-          $ref: "#/components/responses/UnprocesableEntity"
+          $ref: "#/components/responses/UnprocessableEntity"
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
-        - bearerAuth: []
+        - BearerAuth: []
 
   /invoices/{invoiceId}:
     get:
       tags:
         - Billing
-      summary: Get invoice details
+      summary: Gets invoice details
       operationId: findInvoiceById
       parameters:
         - name: invoiceId
@@ -1035,7 +1036,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/InvoiceDto"
+                $ref: "#/components/schemas/InvoiceResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -1047,13 +1048,13 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
-        - bearerAuth: []
+        - BearerAuth: []
 
   /tickets:
     get:
       tags:
         - Support
-      summary: List support tickets
+      summary: Lists support tickets
       operationId: findAllTickets
       parameters:
         - $ref: "#/components/parameters/PageParam"
@@ -1079,16 +1080,16 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "422":
-          $ref: "#/components/responses/UnprocesableEntity"
+          $ref: "#/components/responses/UnprocessableEntity"
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
-        - bearerAuth: []
+        - BearerAuth: []
 
     post:
       tags:
         - Support
-      summary: Create a support ticket
+      summary: Creates a support ticket
       operationId: createTicket
       requestBody:
         required: true
@@ -1106,17 +1107,17 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "422":
-          $ref: "#/components/responses/UnprocesableEntity"
+          $ref: "#/components/responses/UnprocessableEntity"
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
-        - bearerAuth: []
+        - BearerAuth: []
 
   /tickets/{ticketId}:
     get:
       tags:
         - Support
-      summary: Get ticket details with messages
+      summary: Gets ticket details with messages
       operationId: findTicketById
       parameters:
         - name: ticketId
@@ -1132,7 +1133,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/TicketDetailDto"
+                $ref: "#/components/schemas/TicketDetailResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -1144,13 +1145,13 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
-        - bearerAuth: []
+        - BearerAuth: []
 
   /tickets/{ticketId}/messages:
     post:
       tags:
         - Support
-      summary: Add message to ticket
+      summary: Adds message to ticket
       operationId: addTicketMessage
       parameters:
         - name: ticketId
@@ -1178,17 +1179,17 @@ paths:
         "404":
           $ref: "#/components/responses/NotFound"
         "422":
-          $ref: "#/components/responses/UnprocesableEntity"
+          $ref: "#/components/responses/UnprocessableEntity"
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
-        - bearerAuth: []
+        - BearerAuth: []
 
   /tickets/{ticketId}/close:
     post:
       tags:
         - Support
-      summary: Close a ticket
+      summary: Closes a ticket
       operationId: closeTicket
       parameters:
         - name: ticketId
@@ -1212,7 +1213,7 @@ paths:
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
-        - bearerAuth: []
+        - BearerAuth: []
 
   /radius/auth:
     post:
@@ -1248,11 +1249,11 @@ paths:
         "403":
           $ref: "#/components/responses/Forbidden"
         "422":
-          $ref: "#/components/responses/UnprocesableEntity"
+          $ref: "#/components/responses/UnprocessableEntity"
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
-        - bearerAuth: []
+        - BearerAuth: []
 
 components:
   schemas:
@@ -1267,9 +1268,9 @@ components:
           type: array
           description: List of customers for the current page.
           items:
-            $ref: "#/components/schemas/CustomerDto"
+            $ref: "#/components/schemas/CustomerResponse"
         pagination:
-          $ref: "#/components/schemas/PaginationDto"
+          $ref: "#/components/schemas/PaginationResponse"
 
     PagedServicePlanResponse:
       type: object
@@ -1282,9 +1283,9 @@ components:
           type: array
           description: List of service plans for the current page.
           items:
-            $ref: "#/components/schemas/ServicePlanDto"
+            $ref: "#/components/schemas/ServicePlanResponse"
         pagination:
-          $ref: "#/components/schemas/PaginationDto"
+          $ref: "#/components/schemas/PaginationResponse"
 
     PagedSubscriptionResponse:
       type: object
@@ -1297,11 +1298,11 @@ components:
           type: array
           description: List of subscriptions for the current page.
           items:
-            $ref: "#/components/schemas/SubscriptionDto"
+            $ref: "#/components/schemas/SubscriptionResponse"
         pagination:
-          $ref: "#/components/schemas/PaginationDto"
+          $ref: "#/components/schemas/PaginationResponse"
 
-    PagedTowerResponse:
+    PageResponsewerResponse:
       type: object
       description: Paginated response containing a list of towers and pagination metadata.
       required:
@@ -1312,9 +1313,9 @@ components:
           type: array
           description: List of towers for the current page.
           items:
-            $ref: "#/components/schemas/TowerDto"
+            $ref: "#/components/schemas/TowerResponse"
         pagination:
-          $ref: "#/components/schemas/PaginationDto"
+          $ref: "#/components/schemas/PaginationResponse"
 
     PagedSectorResponse:
       type: object
@@ -1327,9 +1328,9 @@ components:
           type: array
           description: List of sectors for the current page.
           items:
-            $ref: "#/components/schemas/SectorDto"
+            $ref: "#/components/schemas/SectorResponse"
         pagination:
-          $ref: "#/components/schemas/PaginationDto"
+          $ref: "#/components/schemas/PaginationResponse"
 
     PagedNetworkDeviceResponse:
       type: object
@@ -1342,9 +1343,9 @@ components:
           type: array
           description: List of network devices for the current page.
           items:
-            $ref: "#/components/schemas/NetworkDeviceDto"
+            $ref: "#/components/schemas/NetworkDeviceResponse"
         pagination:
-          $ref: "#/components/schemas/PaginationDto"
+          $ref: "#/components/schemas/PaginationResponse"
 
     PagedTransactionResponse:
       type: object
@@ -1357,9 +1358,9 @@ components:
           type: array
           description: List of transactions for the current page.
           items:
-            $ref: "#/components/schemas/TransactionDto"
+            $ref: "#/components/schemas/TransactionResponse"
         pagination:
-          $ref: "#/components/schemas/PaginationDto"
+          $ref: "#/components/schemas/PaginationResponse"
 
     PagedInvoiceResponse:
       type: object
@@ -1372,9 +1373,9 @@ components:
           type: array
           description: List of invoices for the current page.
           items:
-            $ref: "#/components/schemas/InvoiceDto"
+            $ref: "#/components/schemas/InvoiceResponse"
         pagination:
-          $ref: "#/components/schemas/PaginationDto"
+          $ref: "#/components/schemas/PaginationResponse"
 
     PagedTicketResponse:
       type: object
@@ -1387,9 +1388,9 @@ components:
           type: array
           description: List of tickets for the current page.
           items:
-            $ref: "#/components/schemas/TicketDto"
+            $ref: "#/components/schemas/TicketResponse"
         pagination:
-          $ref: "#/components/schemas/PaginationDto"
+          $ref: "#/components/schemas/PaginationResponse"
 
     PagedApiKeyResponse:
       type: object
@@ -1402,9 +1403,9 @@ components:
           type: array
           description: List of API keys for the current page.
           items:
-            $ref: "#/components/schemas/ApiKeyDto"
+            $ref: "#/components/schemas/ApiKeyResponse"
         pagination:
-          $ref: "#/components/schemas/PaginationDto"
+          $ref: "#/components/schemas/PaginationResponse"
 
     CreateCustomerRequest:
       type: object
@@ -1461,14 +1462,6 @@ components:
         expires_in_days:
           type: integer
           description: Number of days until the API key expires (optional)
-
-    SuspendCustomerRequest:
-      type: object
-      description: Request body for suspending a customer account
-      properties:
-        reason:
-          type: string
-          description: Reason for suspending the customer
 
     CreateSubscriptionRequest:
       type: object
@@ -1545,7 +1538,7 @@ components:
           type: string
           description: Priority level of the ticket
           enum: [LOW, MEDIUM, HIGH, URGENT]
-          default: medium
+          default: MEDIUM
         subject:
           type: string
           description: Ticket subject line
@@ -1693,23 +1686,23 @@ components:
           type: string
           description: Device IP address
 
-    CustomerDto:
+    CustomerResponse:
       type: object
       description: Customer account information
       properties:
         id:
           type: integer
           description: Unique customer identifier
-        email:
-          type: string
-          format: email
-          description: Customer email address
         first_name:
           type: string
           description: Customer first name
         last_name:
           type: string
           description: Customer last name
+        email:
+          type: string
+          format: email
+          description: Customer email address
         phone:
           type: string
           description: Customer phone number
@@ -1728,20 +1721,20 @@ components:
         country:
           type: string
           description: Customer country
-        status:
-          type: string
-          enum: [ACTIVE, SUSPENDED, CANCELLED]
-          description: Customer account status
         balance:
           type: number
           format: decimal
           description: Current account balance
+        status:
+          type: string
+          enum: [PENDING, ACTIVE, SUSPENDED, DELETED]
+          description: Customer account status
         created_at:
           type: string
           format: date-time
           description: Account creation timestamp
 
-    ServicePlanDto:
+    ServicePlanResponse:
       type: object
       description: Internet service plan details
       properties:
@@ -1775,7 +1768,7 @@ components:
           type: boolean
           description: Whether the plan is available for new subscriptions
 
-    SubscriptionDto:
+    SubscriptionResponse:
       type: object
       description: Customer subscription to a service plan
       properties:
@@ -1789,7 +1782,7 @@ components:
           type: integer
           description: ID of the service plan
         plan:
-          $ref: "#/components/schemas/ServicePlanDto"
+          $ref: "#/components/schemas/ServicePlanResponse"
         device_id:
           type: integer
           description: ID of the assigned network device
@@ -1815,7 +1808,7 @@ components:
           format: date-time
           description: Subscription creation timestamp
 
-    TowerDto:
+    TowerResponse:
       type: object
       description: Wireless tower information
       properties:
@@ -1846,10 +1839,10 @@ components:
         sectors:
           type: array
           items:
-            $ref: "#/components/schemas/SectorDto"
+            $ref: "#/components/schemas/SectorResponse"
           description: List of sectors on this tower
 
-    SectorDto:
+    SectorResponse:
       type: object
       description: Wireless sector information on a tower
       properties:
@@ -1885,7 +1878,7 @@ components:
           enum: [ACTIVE, MAINTENANCE, INACTIVE]
           description: Sector operational status
 
-    NetworkDeviceDto:
+    NetworkDeviceResponse:
       type: object
       description: Network device information
       properties:
@@ -1929,7 +1922,7 @@ components:
           format: date-time
           description: Device registration timestamp
 
-    TransactionDto:
+    TransactionResponse:
       type: object
       description: Financial transaction record
       properties:
@@ -1961,7 +1954,7 @@ components:
           format: date-time
           description: Transaction creation timestamp
 
-    InvoiceDto:
+    InvoiceResponse:
       type: object
       description: Invoice for customer services
       properties:
@@ -1998,7 +1991,7 @@ components:
           format: date-time
           description: Invoice creation timestamp
 
-    ApiKeyDto:
+    ApiKeyResponse:
       type: object
       description: API key for programmatic access
       properties:
@@ -2025,7 +2018,7 @@ components:
           format: date-time
           description: API key creation timestamp
 
-    TicketDto:
+    TicketResponse:
       type: object
       description: Support ticket information
       properties:
@@ -2058,9 +2051,9 @@ components:
           format: date-time
           description: Ticket creation timestamp
 
-    TicketDetailDto:
+    TicketDetailResponse:
       allOf:
-        - $ref: "#/components/schemas/TicketDto"
+        - $ref: "#/components/schemas/TicketResponse"
         - type: object
           description: Detailed ticket information with messages
           properties:
@@ -2094,7 +2087,7 @@ components:
                     format: date-time
                     description: Message timestamp
 
-    PaginationDto:
+    PaginationResponse:
       type: object
       description: Metadata describing pagination information for a paginated response.
       required:
@@ -2105,22 +2098,18 @@ components:
       properties:
         page:
           type: integer
-          example: 0
           description: Current page index (0-based).
         size:
           type: integer
-          example: 25
           description: Number of items returned per page.
         total_items:
           type: integer
-          example: 1
           description: Total number of available items.
         total_pages:
           type: integer
-          example: 1
           description: Total number of pages available.
 
-    AppExceptionDto:
+    AppExceptionResponse:
       type: object
       description: Standard error response returned when an application exception occurs.
       properties:
@@ -2188,42 +2177,42 @@ components:
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/AppExceptionDto"
+            $ref: "#/components/schemas/AppExceptionResponse"
 
     BadRequest:
       description: Bad request
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/AppExceptionDto"
+            $ref: "#/components/schemas/AppExceptionResponse"
 
-    UnprocesableEntity:
+    UnprocessableEntity:
       description: Unprocessable entity
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/AppExceptionDto"
+            $ref: "#/components/schemas/AppExceptionResponse"
 
     Unauthorized:
       description: Unauthorized
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/AppExceptionDto"
+            $ref: "#/components/schemas/AppExceptionResponse"
 
     Forbidden:
       description: Forbidden
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/AppExceptionDto"
+            $ref: "#/components/schemas/AppExceptionResponse"
 
     InternalServerError:
       description: Internal server error
       content:
         application/json:
           schema:
-            $ref: "#/components/schemas/AppExceptionDto"
+            $ref: "#/components/schemas/AppExceptionResponse"
 
   securitySchemes:
     BearerAuth:
