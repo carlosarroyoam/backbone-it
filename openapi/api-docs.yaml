@@ -1,0 +1,2232 @@
+openapi: 3.0.3
+info:
+  title: Backbone TI WISP Management System API
+  description: |
+    API for managing a Wireless Internet Service Provider (WISP).
+    Supports customer management, network topology, prepaid billing, and self-service.
+  version: 1.0.0
+  contact:
+    name: Backbone TI WISP Support
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0.html
+
+servers:
+  - url: https://api.wisp.backbone-ti.com/v1
+    description: Production server
+  - url: http://localhost:8080/v1
+    description: Development server
+
+tags:
+  - name: Authentication
+    description: API authentication and authorization
+  - name: Customers
+    description: Customer account management
+  - name: Subscriptions
+    description: Service subscriptions and plans
+  - name: Network
+    description: Network topology and devices
+  - name: Billing
+    description: Balance, transactions, and invoices
+  - name: Support
+    description: Helpdesk tickets
+
+paths:
+  /auth/register:
+    post:
+      tags:
+        - Authentication
+      summary: Register a new customer account
+      operationId: registerCustomer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCustomerRequest"
+      responses:
+        "201":
+          $ref: "#/components/responses/Created"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/UnprocesableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /auth/login:
+    post:
+      tags:
+        - Authentication
+      summary: Authenticate and get API token
+      operationId: login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/LoginRequest"
+      responses:
+        "200":
+          description: Login successful
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_token:
+                    type: string
+                    description: JWT access token for API authentication
+                  token_type:
+                    type: string
+                    description: Type of token (Bearer)
+                    example: Bearer
+                  expires_in:
+                    type: integer
+                    description: Token expiration time in seconds
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/UnprocesableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /auth/api-keys:
+    get:
+      tags:
+        - Authentication
+      summary: List API keys for current customer
+      operationId: findAllApiKeys
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedApiKeyResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/UnprocesableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+  /customers:
+    get:
+      tags:
+        - Customers
+      summary: List all customers
+      operationId: findAllCustomers
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - $ref: "#/components/parameters/SortParam"
+        - name: status
+          in: query
+          description: Filter customers by status
+          schema:
+            type: string
+            enum: [ACTIVE, SUSPENDED, CANCELLED]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedCustomerResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/UnprocesableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+  /customers/{customerId}:
+    get:
+      tags:
+        - Customers
+      summary: Get customer by ID
+      operationId: findCustomerById
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          description: Unique identifier of the customer
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerDto"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+  /customers/{customerId}/suspend:
+    post:
+      tags:
+        - Customers
+      summary: Suspend a customer account
+      operationId: suspendCustomer
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          description: Unique identifier of the customer
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/SuspendCustomerRequest"
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocesableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+  /customers/{customerId}/activate:
+    post:
+      tags:
+        - Customers
+      summary: Activate a suspended customer
+      operationId: activateCustomer
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          description: Unique identifier of the customer
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+      security:
+        - bearerAuth: []
+
+  /customers/me:
+    get:
+      tags:
+        - Customers
+      summary: Get current customer profile
+      operationId: getCurrentCustomer
+      responses:
+        "200":
+          description: Customer profile
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerDto"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+    patch:
+      tags:
+        - Customers
+      summary: Update current customer profile
+      operationId: updateCurrentCustomer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCustomerRequest"
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/UnprocesableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+  /plans:
+    get:
+      tags:
+        - Subscriptions
+      summary: List available service plans
+      operationId: findAllPlans
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - $ref: "#/components/parameters/SortParam"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedServicePlanResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/UnprocesableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+  /plans/{planId}:
+    get:
+      tags:
+        - Subscriptions
+      summary: Get service plan details
+      operationId: findPlanById
+      parameters:
+        - name: planId
+          in: path
+          required: true
+          description: Unique identifier of the service plan
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Plan details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ServicePlanDto"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+  /subscriptions:
+    get:
+      tags:
+        - Subscriptions
+      summary: Get current customer's subscriptions
+      operationId: findAllSubscriptions
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedSubscriptionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/UnprocesableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+    post:
+      tags:
+        - Subscriptions
+      summary: Create a new subscription
+      operationId: createSubscription
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSubscriptionRequest"
+      responses:
+        "201":
+          $ref: "#/components/responses/Created"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/UnprocesableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+  /subscriptions/{subscriptionId}:
+    get:
+      tags:
+        - Subscriptions
+      summary: Get subscription details
+      operationId: findSubscriptionById
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          description: Unique identifier of the subscription
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Subscription details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/SubscriptionDto"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+    patch:
+      tags:
+        - Subscriptions
+      summary: Update subscription (change plan)
+      operationId: updateSubscription
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          description: Unique identifier of the subscription
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateSubscriptionRequest"
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocesableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+  /subscriptions/{subscriptionId}/suspend:
+    post:
+      tags:
+        - Subscriptions
+      summary: Suspend a subscription
+      operationId: suspendSubscription
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          description: Unique identifier of the subscription
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+      security:
+        - bearerAuth: []
+
+  /subscriptions/{subscriptionId}/activate:
+    post:
+      tags:
+        - Subscriptions
+      summary: Activate a suspended subscription
+      operationId: activateSubscription
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          description: Unique identifier of the subscription
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+      security:
+        - bearerAuth: []
+
+  /towers:
+    get:
+      tags:
+        - Network
+      summary: List all towers
+      operationId: findAllTowers
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - $ref: "#/components/parameters/SortParam"
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedTowerResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/UnprocesableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+    post:
+      tags:
+        - Network
+      summary: Create a new tower
+      operationId: createTower
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTowerRequest"
+      responses:
+        "201":
+          $ref: "#/components/responses/Created"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocesableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+  /towers/{towerId}:
+    get:
+      tags:
+        - Network
+      summary: Get tower with sectors
+      operationId: findTowerById
+      parameters:
+        - name: towerId
+          in: path
+          required: true
+          description: Unique identifier of the tower
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Tower details with sectors
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TowerDto"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+  /towers/{towerId}/sectors:
+    get:
+      tags:
+        - Network
+      summary: List sectors for a tower
+      operationId: findAllSectorsByTower
+      parameters:
+        - name: towerId
+          in: path
+          required: true
+          description: Unique identifier of the tower
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedSectorResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocesableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+    post:
+      tags:
+        - Network
+      summary: Create a sector on a tower
+      operationId: createSector
+      parameters:
+        - name: towerId
+          in: path
+          required: true
+          description: Unique identifier of the tower
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateSectorRequest"
+      responses:
+        "201":
+          $ref: "#/components/responses/Created"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocesableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+  /devices:
+    get:
+      tags:
+        - Network
+      summary: List network devices
+      operationId: findAllDevices
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - $ref: "#/components/parameters/SortParam"
+        - name: type
+          in: query
+          description: Filter devices by type
+          schema:
+            type: string
+            enum: [cpe, ap, router, switch, ont]
+        - name: status
+          in: query
+          description: Filter devices by status
+          schema:
+            type: string
+            enum: [ONLINE, OFFLINE, PROVISIONED, DECOMMISSIONED]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedNetworkDeviceResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/UnprocesableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+    post:
+      tags:
+        - Network
+      summary: Register a new network device
+      operationId: createDevice
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateNetworkDeviceRequest"
+      responses:
+        "201":
+          $ref: "#/components/responses/Created"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/UnprocesableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+  /devices/{deviceId}:
+    get:
+      tags:
+        - Network
+      summary: Get device details
+      operationId: findDeviceById
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          description: Unique identifier of the network device
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Device details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NetworkDeviceDto"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+  /devices/{deviceId}/assign:
+    post:
+      tags:
+        - Network
+      summary: Assign device to customer
+      operationId: assignDevice
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          description: Unique identifier of the network device
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AssignDeviceRequest"
+      responses:
+        "200":
+          description: Device assigned
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/NetworkDeviceDto"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocesableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+  /customers/{customerId}/devices:
+    get:
+      tags:
+        - Network
+      summary: Get customer's devices
+      operationId: findAllDevicesByCustomer
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          description: Unique identifier of the customer
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedNetworkDeviceResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocesableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+  /balance:
+    get:
+      tags:
+        - Billing
+      summary: Get current customer's balance
+      operationId: getBalance
+      responses:
+        "200":
+          description: Balance information
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  customer_id:
+                    type: integer
+                    description: Unique identifier of the customer
+                  balance:
+                    type: number
+                    format: decimal
+                    description: Current account balance
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+  /balance/topup:
+    post:
+      tags:
+        - Billing
+      summary: Add balance to account
+      operationId: createTopup
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTopupRequest"
+      responses:
+        "201":
+          $ref: "#/components/responses/Created"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/UnprocesableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+  /transactions:
+    get:
+      tags:
+        - Billing
+      summary: Get transaction history
+      operationId: findAllTransactions
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - $ref: "#/components/parameters/SortParam"
+        - name: type
+          in: query
+          description: Filter transactions by type
+          schema:
+            type: string
+            enum: [TOPUP, PAYMENT, REFUND, ADJUSTMENT]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedTransactionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/UnprocesableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+  /invoices:
+    get:
+      tags:
+        - Billing
+      summary: Get customers invoices
+      operationId: findAllInvoices
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - $ref: "#/components/parameters/SortParam"
+        - name: status
+          in: query
+          description: Filter invoices by status
+          schema:
+            type: string
+            enum: [DRAFT, SENT, PAID, OVERDUE]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedInvoiceResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/UnprocesableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+  /invoices/{invoiceId}:
+    get:
+      tags:
+        - Billing
+      summary: Get invoice details
+      operationId: findInvoiceById
+      parameters:
+        - name: invoiceId
+          in: path
+          required: true
+          description: Unique identifier of the invoice
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Invoice details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/InvoiceDto"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+  /tickets:
+    get:
+      tags:
+        - Support
+      summary: List support tickets
+      operationId: findAllTickets
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - $ref: "#/components/parameters/SortParam"
+        - name: status
+          in: query
+          description: Filter tickets by status
+          schema:
+            type: string
+            enum: [OPEN, IN_PROGRESS, PENDING, RESOLVED, CLOSED]
+      responses:
+        "200":
+          description: List of tickets
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedTicketResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/UnprocesableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+    post:
+      tags:
+        - Support
+      summary: Create a support ticket
+      operationId: createTicket
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateTicketRequest"
+      responses:
+        "201":
+          $ref: "#/components/responses/Created"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/UnprocesableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+  /tickets/{ticketId}:
+    get:
+      tags:
+        - Support
+      summary: Get ticket details with messages
+      operationId: findTicketById
+      parameters:
+        - name: ticketId
+          in: path
+          required: true
+          description: Unique identifier of the ticket
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Ticket details
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/TicketDetailDto"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+  /tickets/{ticketId}/messages:
+    post:
+      tags:
+        - Support
+      summary: Add message to ticket
+      operationId: addTicketMessage
+      parameters:
+        - name: ticketId
+          in: path
+          required: true
+          description: Unique identifier of the ticket
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/AddTicketMessageRequest"
+      responses:
+        "201":
+          $ref: "#/components/responses/Created"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocesableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+  /tickets/{ticketId}/close:
+    post:
+      tags:
+        - Support
+      summary: Close a ticket
+      operationId: closeTicket
+      parameters:
+        - name: ticketId
+          in: path
+          required: true
+          description: Unique identifier of the ticket
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "201":
+          $ref: "#/components/responses/Created"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+  /radius/auth:
+    post:
+      tags:
+        - RADIUS
+      summary: RADIUS authentication endpoint
+      description: For PPPoE/RADIUS server integration
+      operationId: radiusAuth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RadiusAuthRequest"
+      responses:
+        "200":
+          description: Authentication accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  access_accept:
+                    type: boolean
+                    description: Indicates authentication was successful
+                  reply_message:
+                    type: string
+                    description: Optional reply message from the RADIUS server
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/UnprocesableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - bearerAuth: []
+
+components:
+  schemas:
+    PagedCustomerResponse:
+      type: object
+      description: Paginated response containing a list of customers and pagination metadata.
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          description: List of customers for the current page.
+          items:
+            $ref: "#/components/schemas/CustomerDto"
+        pagination:
+          $ref: "#/components/schemas/PaginationDto"
+
+    PagedServicePlanResponse:
+      type: object
+      description: Paginated response containing a list of service plans and pagination metadata.
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          description: List of service plans for the current page.
+          items:
+            $ref: "#/components/schemas/ServicePlanDto"
+        pagination:
+          $ref: "#/components/schemas/PaginationDto"
+
+    PagedSubscriptionResponse:
+      type: object
+      description: Paginated response containing a list of subscriptions and pagination metadata.
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          description: List of subscriptions for the current page.
+          items:
+            $ref: "#/components/schemas/SubscriptionDto"
+        pagination:
+          $ref: "#/components/schemas/PaginationDto"
+
+    PagedTowerResponse:
+      type: object
+      description: Paginated response containing a list of towers and pagination metadata.
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          description: List of towers for the current page.
+          items:
+            $ref: "#/components/schemas/TowerDto"
+        pagination:
+          $ref: "#/components/schemas/PaginationDto"
+
+    PagedSectorResponse:
+      type: object
+      description: Paginated response containing a list of sectors and pagination metadata.
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          description: List of sectors for the current page.
+          items:
+            $ref: "#/components/schemas/SectorDto"
+        pagination:
+          $ref: "#/components/schemas/PaginationDto"
+
+    PagedNetworkDeviceResponse:
+      type: object
+      description: Paginated response containing a list of network devices and pagination metadata.
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          description: List of network devices for the current page.
+          items:
+            $ref: "#/components/schemas/NetworkDeviceDto"
+        pagination:
+          $ref: "#/components/schemas/PaginationDto"
+
+    PagedTransactionResponse:
+      type: object
+      description: Paginated response containing a list of transactions and pagination metadata.
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          description: List of transactions for the current page.
+          items:
+            $ref: "#/components/schemas/TransactionDto"
+        pagination:
+          $ref: "#/components/schemas/PaginationDto"
+
+    PagedInvoiceResponse:
+      type: object
+      description: Paginated response containing a list of invoices and pagination metadata.
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          description: List of invoices for the current page.
+          items:
+            $ref: "#/components/schemas/InvoiceDto"
+        pagination:
+          $ref: "#/components/schemas/PaginationDto"
+
+    PagedTicketResponse:
+      type: object
+      description: Paginated response containing a list of tickets and pagination metadata.
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          description: List of tickets for the current page.
+          items:
+            $ref: "#/components/schemas/TicketDto"
+        pagination:
+          $ref: "#/components/schemas/PaginationDto"
+
+    PagedApiKeyResponse:
+      type: object
+      description: Paginated response containing a list of API keys and pagination metadata.
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          description: List of API keys for the current page.
+          items:
+            $ref: "#/components/schemas/ApiKeyDto"
+        pagination:
+          $ref: "#/components/schemas/PaginationDto"
+
+    CreateCustomerRequest:
+      type: object
+      description: Request body for registering a new customer account
+      required:
+        - email
+        - password
+        - first_name
+        - last_name
+      properties:
+        email:
+          type: string
+          format: email
+          description: Customer email address
+        password:
+          type: string
+          format: password
+          description: Account password
+          minLength: 8
+        first_name:
+          type: string
+          description: Customer first name
+        last_name:
+          type: string
+          description: Customer last name
+        phone:
+          type: string
+          description: Customer phone number
+
+    LoginRequest:
+      type: object
+      description: Request body for authenticating a customer
+      required:
+        - email
+        - password
+      properties:
+        email:
+          type: string
+          format: email
+          description: Customer email address
+        password:
+          type: string
+          description: Account password
+
+    CreateApiKeyRequest:
+      type: object
+      description: Request body for creating a new API key
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: User-defined name for the API key
+        expires_in_days:
+          type: integer
+          description: Number of days until the API key expires (optional)
+
+    SuspendCustomerRequest:
+      type: object
+      description: Request body for suspending a customer account
+      properties:
+        reason:
+          type: string
+          description: Reason for suspending the customer
+
+    CreateSubscriptionRequest:
+      type: object
+      description: Request body for creating a new subscription
+      required:
+        - plan_id
+        - username
+        - password
+      properties:
+        plan_id:
+          type: integer
+          description: ID of the service plan to subscribe to
+        username:
+          type: string
+          description: PPPoE username for the subscription
+        password:
+          type: string
+          description: PPPoE password for the subscription
+        device_id:
+          type: integer
+          description: ID of the network device to assign (optional)
+
+    UpdateSubscriptionRequest:
+      type: object
+      description: Request body for updating a subscription
+      properties:
+        plan_id:
+          type: integer
+          description: ID of the new service plan
+
+    AssignDeviceRequest:
+      type: object
+      description: Request body for assigning a device to a customer
+      required:
+        - customer_id
+      properties:
+        customer_id:
+          type: integer
+          description: ID of the customer to assign the device to
+
+    CreateTopupRequest:
+      type: object
+      description: Request body for adding balance to an account
+      required:
+        - amount
+        - payment_method
+      properties:
+        amount:
+          type: number
+          format: decimal
+          description: Amount to add to the account balance
+          minimum: 1
+        payment_method:
+          type: string
+          description: Payment method used for the topup
+          enum: [CASH, BANK_TRANSFER, CREDIT_CARD, GATEWAY]
+        reference:
+          type: string
+          description: External reference or transaction ID (optional)
+
+    CreateTicketRequest:
+      type: object
+      description: Request body for creating a support ticket
+      required:
+        - category
+        - subject
+        - description
+      properties:
+        category:
+          type: string
+          description: Category of the support ticket
+          enum: [TECHNICAL, BILLING, ACCOUNT, OTHER]
+        priority:
+          type: string
+          description: Priority level of the ticket
+          enum: [LOW, MEDIUM, HIGH, URGENT]
+          default: medium
+        subject:
+          type: string
+          description: Ticket subject line
+        description:
+          type: string
+          description: Detailed description of the issue
+
+    AddTicketMessageRequest:
+      type: object
+      description: Request body for adding a message to a ticket
+      required:
+        - message
+      properties:
+        message:
+          type: string
+          description: Message content to add to the ticket
+
+    RadiusAuthRequest:
+      type: object
+      description: Request body for RADIUS authentication
+      required:
+        - username
+        - password
+      properties:
+        username:
+          type: string
+          description: PPPoE username for authentication
+        password:
+          type: string
+          description: PPPoE password for authentication
+        nas_ip_address:
+          type: string
+          description: Network Access Server IP address
+        framed_ip_address:
+          type: string
+          description: Assigned framed IP address (if any)
+
+    UpdateCustomerRequest:
+      type: object
+      description: Fields that can be updated for a customer
+      properties:
+        first_name:
+          type: string
+          description: Customer first name
+        last_name:
+          type: string
+          description: Customer last name
+        phone:
+          type: string
+          description: Customer phone number
+        address:
+          type: string
+          description: Customer street address
+        city:
+          type: string
+          description: Customer city
+        state:
+          type: string
+          description: Customer state or province
+        zip_code:
+          type: string
+          description: Customer postal code
+
+    CreateTowerRequest:
+      type: object
+      description: Request body for creating a new tower
+      required:
+        - name
+        - code
+      properties:
+        name:
+          type: string
+          description: Tower name
+        code:
+          type: string
+          description: Tower code for internal use
+        address:
+          type: string
+          description: Tower physical address
+        latitude:
+          type: number
+          description: Tower latitude coordinate
+        longitude:
+          type: number
+          description: Tower longitude coordinate
+
+    CreateSectorRequest:
+      type: object
+      description: Request body for creating a new sector
+      required:
+        - name
+        - sector_number
+      properties:
+        name:
+          type: string
+          description: Sector name
+        sector_number:
+          type: integer
+          description: Sector number identifier
+        azimuth:
+          type: integer
+          default: 0
+          description: Azimuth angle in degrees (0-360)
+        angle_width:
+          type: integer
+          default: 60
+          description: Beam angle width in degrees
+        frequency_band:
+          type: string
+          description: Operating frequency band (e.g., 2.4GHz, 5GHz)
+        channel_width:
+          type: integer
+          description: Channel width in MHz
+        tx_power:
+          type: integer
+          description: Transmit power in dBm
+
+    CreateNetworkDeviceRequest:
+      type: object
+      description: Request body for registering a new network device
+      required:
+        - mac_address
+        - device_type
+      properties:
+        mac_address:
+          type: string
+          description: Device MAC address
+        device_type:
+          type: string
+          enum: [CPE, AP, ROUTER, SWITCH, ONT, OTHER]
+          description: Type of network device
+        vendor:
+          type: string
+          description: Device manufacturer
+        model:
+          type: string
+          description: Device model
+        serial_number:
+          type: string
+          description: Device serial number
+        firmware_version:
+          type: string
+          description: Installed firmware version
+        ip_address:
+          type: string
+          description: Device IP address
+
+    CustomerDto:
+      type: object
+      description: Customer account information
+      properties:
+        id:
+          type: integer
+          description: Unique customer identifier
+        email:
+          type: string
+          format: email
+          description: Customer email address
+        first_name:
+          type: string
+          description: Customer first name
+        last_name:
+          type: string
+          description: Customer last name
+        phone:
+          type: string
+          description: Customer phone number
+        address:
+          type: string
+          description: Customer street address
+        city:
+          type: string
+          description: Customer city
+        state:
+          type: string
+          description: Customer state or province
+        zip_code:
+          type: string
+          description: Customer postal code
+        country:
+          type: string
+          description: Customer country
+        status:
+          type: string
+          enum: [ACTIVE, SUSPENDED, CANCELLED]
+          description: Customer account status
+        balance:
+          type: number
+          format: decimal
+          description: Current account balance
+        created_at:
+          type: string
+          format: date-time
+          description: Account creation timestamp
+
+    ServicePlanDto:
+      type: object
+      description: Internet service plan details
+      properties:
+        id:
+          type: integer
+          description: Unique plan identifier
+        name:
+          type: string
+          description: Plan name
+        code:
+          type: string
+          description: Plan code for internal use
+        description:
+          type: string
+          description: Plan description
+        download_speed_mbps:
+          type: integer
+          description: Maximum download speed in Mbps
+        upload_speed_mbps:
+          type: integer
+          description: Maximum upload speed in Mbps
+        price:
+          type: number
+          format: decimal
+          description: Plan price
+        billing_cycle:
+          type: string
+          enum: [MONTHLY, QUARTERLY, YEARLY]
+          description: Billing cycle for the plan
+        is_active:
+          type: boolean
+          description: Whether the plan is available for new subscriptions
+
+    SubscriptionDto:
+      type: object
+      description: Customer subscription to a service plan
+      properties:
+        id:
+          type: integer
+          description: Unique subscription identifier
+        customer_id:
+          type: integer
+          description: ID of the customer who owns this subscription
+        plan_id:
+          type: integer
+          description: ID of the service plan
+        plan:
+          $ref: "#/components/schemas/ServicePlanDto"
+        device_id:
+          type: integer
+          description: ID of the assigned network device
+        username:
+          type: string
+          description: PPPoE username for the subscription
+        pppoe_ip_address:
+          type: string
+          description: Assigned PPPoE IP address
+        static_ip_address:
+          type: string
+          description: Assigned static IP address (if any)
+        status:
+          type: string
+          enum: [ACTIVE, SUSPENDED, CANCELLED]
+          description: Subscription status
+        activated_at:
+          type: string
+          format: date-time
+          description: Timestamp when subscription was activated
+        created_at:
+          type: string
+          format: date-time
+          description: Subscription creation timestamp
+
+    TowerDto:
+      type: object
+      description: Wireless tower information
+      properties:
+        id:
+          type: integer
+          description: Unique tower identifier
+        name:
+          type: string
+          description: Tower name
+        code:
+          type: string
+          description: Tower code for internal use
+        address:
+          type: string
+          description: Tower physical address
+        latitude:
+          type: number
+          format: decimal
+          description: Tower latitude coordinate
+        longitude:
+          type: number
+          format: decimal
+          description: Tower longitude coordinate
+        status:
+          type: string
+          enum: [ACTIVE, MAINTENANCE, INACTIVE]
+          description: Tower operational status
+        sectors:
+          type: array
+          items:
+            $ref: "#/components/schemas/SectorDto"
+          description: List of sectors on this tower
+
+    SectorDto:
+      type: object
+      description: Wireless sector information on a tower
+      properties:
+        id:
+          type: integer
+          description: Unique sector identifier
+        tower_id:
+          type: integer
+          description: ID of the parent tower
+        name:
+          type: string
+          description: Sector name
+        sector_number:
+          type: integer
+          description: Sector number identifier
+        azimuth:
+          type: integer
+          description: Azimuth angle in degrees (0-360)
+        angle_width:
+          type: integer
+          description: Beam angle width in degrees
+        frequency_band:
+          type: string
+          description: Operating frequency band (e.g., 2.4GHz, 5GHz)
+        channel_width:
+          type: integer
+          description: Channel width in MHz
+        tx_power:
+          type: integer
+          description: Transmit power in dBm
+        status:
+          type: string
+          enum: [ACTIVE, MAINTENANCE, INACTIVE]
+          description: Sector operational status
+
+    NetworkDeviceDto:
+      type: object
+      description: Network device information
+      properties:
+        id:
+          type: integer
+          description: Unique device identifier
+        mac_address:
+          type: string
+          description: Device MAC address
+        device_type:
+          type: string
+          enum: [CPE, AP, ROUTER, SWITCH, ONT, OTHER]
+          description: Type of network device
+        vendor:
+          type: string
+          description: Device manufacturer
+        model:
+          type: string
+          description: Device model
+        serial_number:
+          type: string
+          description: Device serial number
+        firmware_version:
+          type: string
+          description: Installed firmware version
+        ip_address:
+          type: string
+          description: Device IP address
+        sector_id:
+          type: integer
+          description: ID of the sector this device is assigned to
+        customer_id:
+          type: integer
+          description: ID of the customer who owns this device
+        status:
+          type: string
+          enum: [ONLINE, OFFLINE, PROVISIONED, DECOMMISSIONED]
+          description: Device operational status
+        created_at:
+          type: string
+          format: date-time
+          description: Device registration timestamp
+
+    TransactionDto:
+      type: object
+      description: Financial transaction record
+      properties:
+        id:
+          type: integer
+          description: Unique transaction identifier
+        customer_id:
+          type: integer
+          description: ID of the customer associated with this transaction
+        type:
+          type: string
+          enum: [TOPUP, PAYMENT, REFUND, ADJUSTMENT]
+          description: Type of transaction
+        amount:
+          type: number
+          format: decimal
+          description: Transaction amount
+        payment_method:
+          type: string
+          description: Payment method used
+        reference:
+          type: string
+          description: External reference or transaction ID
+        description:
+          type: string
+          description: Transaction description
+        created_at:
+          type: string
+          format: date-time
+          description: Transaction creation timestamp
+
+    InvoiceDto:
+      type: object
+      description: Invoice for customer services
+      properties:
+        id:
+          type: integer
+          description: Unique invoice identifier
+        invoice_number:
+          type: string
+          description: Human-readable invoice number
+        customer_id:
+          type: integer
+          description: ID of the customer invoiced
+        subscription_id:
+          type: integer
+          description: ID of the subscription this invoice is for
+        amount:
+          type: number
+          format: decimal
+          description: Invoice amount
+        status:
+          type: string
+          enum: [DRAFT, SENT, PAID, OVERDUE, CANCELLED]
+          description: Invoice payment status
+        due_date:
+          type: string
+          format: date
+          description: Payment due date
+        paid_at:
+          type: string
+          format: date-time
+          description: Timestamp when invoice was paid
+        created_at:
+          type: string
+          format: date-time
+          description: Invoice creation timestamp
+
+    ApiKeyDto:
+      type: object
+      description: API key for programmatic access
+      properties:
+        id:
+          type: integer
+          description: Unique API key identifier
+        name:
+          type: string
+          description: User-defined name for the API key
+        status:
+          type: string
+          enum: [active, revoked]
+          description: API key status
+        last_used_at:
+          type: string
+          format: date-time
+          description: Timestamp when the API key was last used
+        expires_at:
+          type: string
+          format: date-time
+          description: API key expiration timestamp
+        created_at:
+          type: string
+          format: date-time
+          description: API key creation timestamp
+
+    TicketDto:
+      type: object
+      description: Support ticket information
+      properties:
+        id:
+          type: integer
+          description: Unique ticket identifier
+        ticket_number:
+          type: string
+          description: Human-readable ticket number
+        customer_id:
+          type: integer
+          description: ID of the customer who created the ticket
+        category:
+          type: string
+          enum: [TECHNICAL, BILLING, ACCOUNT, OTHER]
+          description: Ticket category
+        priority:
+          type: string
+          enum: [LOW, MEDIUM, HIGH, URGENT]
+          description: Ticket priority level
+        subject:
+          type: string
+          description: Ticket subject
+        status:
+          type: string
+          enum: [OPEN, IN_PROGRESS, PENDING, RESOLVED, CLOSED]
+          description: Ticket status
+        created_at:
+          type: string
+          format: date-time
+          description: Ticket creation timestamp
+
+    TicketDetailDto:
+      allOf:
+        - $ref: "#/components/schemas/TicketDto"
+        - type: object
+          description: Detailed ticket information with messages
+          properties:
+            description:
+              type: string
+              description: Full ticket description
+            assigned_to:
+              type: integer
+              description: ID of the user assigned to this ticket
+            resolved_at:
+              type: string
+              format: date-time
+              description: Timestamp when ticket was resolved
+            messages:
+              type: array
+              items:
+                type: object
+                description: Ticket message
+                properties:
+                  id:
+                    type: integer
+                    description: Message identifier
+                  user_type:
+                    type: string
+                    description: Type of user who sent the message
+                  message:
+                    type: string
+                    description: Message content
+                  created_at:
+                    type: string
+                    format: date-time
+                    description: Message timestamp
+
+    PaginationDto:
+      type: object
+      description: Metadata describing pagination information for a paginated response.
+      required:
+        - page
+        - size
+        - total_items
+        - total_pages
+      properties:
+        page:
+          type: integer
+          example: 0
+          description: Current page index (0-based).
+        size:
+          type: integer
+          example: 25
+          description: Number of items returned per page.
+        total_items:
+          type: integer
+          example: 1
+          description: Total number of available items.
+        total_pages:
+          type: integer
+          example: 1
+          description: Total number of pages available.
+
+    AppExceptionDto:
+      type: object
+      description: Standard error response returned when an application exception occurs.
+      properties:
+        message:
+          type: string
+          description: Human-readable error message.
+        error:
+          type: string
+          description: Short error identifier or error type.
+        status:
+          type: integer
+          description: HTTP status code associated with the error.
+        details:
+          type: object
+          description: Additional validation or error details.
+          additionalProperties:
+            type: string
+        path:
+          type: string
+          description: API endpoint path where the error occurred.
+        timestamp:
+          type: string
+          format: date-time
+          description: Timestamp when the error was generated.
+
+  parameters:
+    PageParam:
+      name: page
+      in: query
+      required: false
+      description: Page index (0-based).
+      schema:
+        type: integer
+        format: int32
+        default: 0
+
+    SizeParam:
+      name: size
+      in: query
+      required: false
+      description: Number of items per page.
+      schema:
+        type: integer
+        format: int32
+        default: 25
+
+    SortParam:
+      name: sort
+      in: query
+      required: false
+      description: Sorting criteria in the format field,asc or field,desc.
+      schema:
+        type: string
+        default: id,asc
+
+  responses:
+    Created:
+      description: Created
+
+    NoContent:
+      description: No content
+
+    NotFound:
+      description: Not found
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/AppExceptionDto"
+
+    BadRequest:
+      description: Bad request
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/AppExceptionDto"
+
+    UnprocesableEntity:
+      description: Unprocessable entity
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/AppExceptionDto"
+
+    Unauthorized:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/AppExceptionDto"
+
+    Forbidden:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/AppExceptionDto"
+
+    InternalServerError:
+      description: Internal server error
+      content:
+        application/json:
+          schema:
+            $ref: "#/components/schemas/AppExceptionDto"
+
+  securitySchemes:
+    BearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
