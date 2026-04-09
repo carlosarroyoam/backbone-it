@@ -131,11 +131,12 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     pppoe_ip_address VARCHAR(45),
     static_ip_address VARCHAR(45),
     status VARCHAR(32) DEFAULT 'ACTIVE',
-    activated_at TIMESTAMP NULL,
-    suspended_at TIMESTAMP NULL,
     plan_id BIGINT UNSIGNED NOT NULL,
     device_id BIGINT UNSIGNED,
     customer_id BIGINT UNSIGNED NOT NULL,
+    customer_address_id BIGINT UNSIGNED NOT NULL,
+    activated_at TIMESTAMP NULL,
+    suspended_at TIMESTAMP NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
     deleted_at TIMESTAMP DEFAULT NULL,
@@ -145,12 +146,14 @@ CREATE TABLE IF NOT EXISTS subscriptions (
     INDEX idx_subscriptions_plan_id (plan_id),
     INDEX idx_subscriptions_device_id (device_id),
     INDEX idx_subscriptions_customer_id (customer_id),
-    CONSTRAINT fk_subscriptions_customer_id
-        FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
     CONSTRAINT fk_subscriptions_plan_id
         FOREIGN KEY (plan_id) REFERENCES service_plans(id),
     CONSTRAINT fk_subscriptions_device_id
-        FOREIGN KEY (device_id) REFERENCES network_devices(id)
+        FOREIGN KEY (device_id) REFERENCES network_devices(id),
+    CONSTRAINT fk_subscriptions_customer_id
+        FOREIGN KEY (customer_id) REFERENCES customers(id) ON DELETE CASCADE,
+    CONSTRAINT fk_subscriptions_customer_address_id
+        FOREIGN KEY (customer_address_id) REFERENCES customer_addresses(id) ON DELETE CASCADE
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
 
 CREATE TABLE IF NOT EXISTS radius_attributes (
@@ -251,10 +254,10 @@ CREATE TABLE IF NOT EXISTS tickets (
 
 CREATE TABLE IF NOT EXISTS ticket_messages (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    ticket_id BIGINT UNSIGNED NOT NULL,
     user_type VARCHAR(32) NOT NULL,
-    user_id BIGINT UNSIGNED,
     message TEXT NOT NULL,
+    ticket_id BIGINT UNSIGNED NOT NULL,
+    user_id BIGINT UNSIGNED,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     INDEX idx_ticket_messages_ticket_id (ticket_id),

@@ -22,12 +22,14 @@ tags:
     description: API authentication and authorization
   - name: Customers
     description: Customer account management
-  - name: Plans
-    description: Plans
+  - name: Customer addresses
+    description: Customer addresses management
+  - name: Service plans
+    description: Service plans
   - name: Subscriptions
     description: Service subscriptions
-  - name: Network
-    description: Network topology
+  - name: Towers
+    description: Towers
   - name: Network devices
     description: Network devices
   - name: Billing
@@ -64,7 +66,7 @@ paths:
                   token_type:
                     type: string
                     description: Type of token (Bearer)
-                    examples: 
+                    examples:
                       - Bearer
                   expires_in:
                     type: integer
@@ -271,7 +273,7 @@ paths:
     post:
       tags:
         - Customers
-      summary:  Suspends a customer by ID
+      summary: Suspends a customer by ID
       operationId: suspendCustomer
       parameters:
         - name: customerId
@@ -331,10 +333,208 @@ paths:
       security:
         - BearerAuth: []
 
+  /customers/{customerId}/addresses:
+    get:
+      tags:
+        - Customer addresses
+      summary: Lists all addresses for a customer
+      operationId: findAllCustomerAddresses
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          description: ID of the customer to retrieve its addresses
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/CustomerAddressResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+
+    post:
+      tags:
+        - Customer addresses
+      summary: Adds a new customer address
+      operationId: createCustomerAddress
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          description: ID of the customer to retrieve its addresses
+          schema:
+            type: integer
+      requestBody:
+        description: Address object that needs to be added
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCustomerAddressRequest"
+        required: true
+      responses:
+        "201":
+          $ref: "#/components/responses/Created"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+
+  /customers/{customerId}/addresses/{addressId}:
+    get:
+      tags:
+        - Customer addresses
+      summary: Gets a customer address by ID
+      operationId: findCustomerAddressById
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          description: ID of the customer to query
+          schema:
+            type: integer
+            format: int64
+        - name: addressId
+          in: path
+          required: true
+          description: ID of the address to query
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerAddressResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+
+    put:
+      tags:
+        - Customer addresses
+      summary: Updates a customer address by ID
+      operationId: updateCustomerAddress
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of the customer to query
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: addressId
+          in: path
+          description: ID of the address to query
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        description: Address object that needs to be updated
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateCustomerAddressRequest"
+        required: true
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+
+    delete:
+      tags:
+        - Customer addresses
+      summary: Deletes a customer address by ID
+      operationId: deleteCustomerAddress
+      parameters:
+        - name: customerId
+          in: path
+          description: ID of the customer to query
+          required: true
+          schema:
+            type: integer
+            format: int64
+        - name: addressId
+          in: path
+          description: ID of the address to query
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+
   /plans:
     get:
       tags:
-        - Plans
+        - Service plans
       summary: Lists available service plans
       operationId: findAllPlans
       parameters:
@@ -364,7 +564,7 @@ paths:
   /plans/{planId}:
     get:
       tags:
-        - Plans
+        - Service plans
       summary: Gets service plan details
       operationId: findPlanById
       parameters:
@@ -525,7 +725,7 @@ paths:
     post:
       tags:
         - Subscriptions
-      summary:  Suspends a subscription
+      summary: Suspends a subscription
       operationId: suspendSubscription
       parameters:
         - name: subscriptionId
@@ -576,7 +776,7 @@ paths:
   /towers:
     get:
       tags:
-        - Network
+        - Towers
       summary: Lists all towers
       operationId: findAllTowers
       parameters:
@@ -605,7 +805,7 @@ paths:
 
     post:
       tags:
-        - Network
+        - Towers
       summary: Creates a new tower
       operationId: createTower
       requestBody:
@@ -635,7 +835,7 @@ paths:
   /towers/{towerId}:
     get:
       tags:
-        - Network
+        - Towers
       summary: Gets a tower by ID
       operationId: findTowerById
       parameters:
@@ -669,7 +869,7 @@ paths:
   /towers/{towerId}/sectors:
     get:
       tags:
-        - Network
+        - Towers
       summary: Lists sectors for a tower
       operationId: findAllSectorsByTower
       parameters:
@@ -704,7 +904,7 @@ paths:
 
     post:
       tags:
-        - Network
+        - Towers
       summary: Creates a sector on a tower
       operationId: createSector
       parameters:
@@ -1259,7 +1459,7 @@ components:
   schemas:
     PagedCustomerResponse:
       type: object
-      description: Paginated response containing a list of customers and pagination metadata.
+      description: Paginated response containing a list of customers and pagination metadata
       required:
         - items
         - pagination
@@ -1275,7 +1475,7 @@ components:
 
     PagedServicePlanResponse:
       type: object
-      description: Paginated response containing a list of service plans and pagination metadata.
+      description: Paginated response containing a list of service plans and pagination metadata
       required:
         - items
         - pagination
@@ -1291,7 +1491,7 @@ components:
 
     PagedSubscriptionResponse:
       type: object
-      description: Paginated response containing a list of subscriptions and pagination metadata.
+      description: Paginated response containing a list of subscriptions and pagination metadata
       required:
         - items
         - pagination
@@ -1307,7 +1507,7 @@ components:
 
     PageResponsewerResponse:
       type: object
-      description: Paginated response containing a list of towers and pagination metadata.
+      description: Paginated response containing a list of towers and pagination metadata
       required:
         - items
         - pagination
@@ -1323,7 +1523,7 @@ components:
 
     PagedSectorResponse:
       type: object
-      description: Paginated response containing a list of sectors and pagination metadata.
+      description: Paginated response containing a list of sectors and pagination metadata
       required:
         - items
         - pagination
@@ -1339,7 +1539,7 @@ components:
 
     PagedNetworkDeviceResponse:
       type: object
-      description: Paginated response containing a list of network devices and pagination metadata.
+      description: Paginated response containing a list of network devices and pagination metadata
       required:
         - items
         - pagination
@@ -1355,7 +1555,7 @@ components:
 
     PagedTransactionResponse:
       type: object
-      description: Paginated response containing a list of transactions and pagination metadata.
+      description: Paginated response containing a list of transactions and pagination metadata
       required:
         - items
         - pagination
@@ -1371,7 +1571,7 @@ components:
 
     PagedInvoiceResponse:
       type: object
-      description: Paginated response containing a list of invoices and pagination metadata.
+      description: Paginated response containing a list of invoices and pagination metadata
       required:
         - items
         - pagination
@@ -1387,7 +1587,7 @@ components:
 
     PagedTicketResponse:
       type: object
-      description: Paginated response containing a list of tickets and pagination metadata.
+      description: Paginated response containing a list of tickets and pagination metadata
       required:
         - items
         - pagination
@@ -1403,7 +1603,7 @@ components:
 
     PagedApiKeyResponse:
       type: object
-      description: Paginated response containing a list of API keys and pagination metadata.
+      description: Paginated response containing a list of API keys and pagination metadata
       required:
         - items
         - pagination
@@ -1612,6 +1812,72 @@ components:
           type: string
           description: Customer postal code
 
+    CreateCustomerAddressRequest:
+      type: object
+      properties:
+        street_name:
+          description: Street name of the address
+          type: string
+        street_number:
+          description: Street number of the address
+          type: string
+        sublocality:
+          description: Neighborhood or sublocality of the address
+          type: string
+        locality:
+          description: City or locality of the address
+          type: string
+        state:
+          description: State or province of the address
+          type: string
+        country:
+          type: string
+          description: Country code of the address
+        postal_code:
+          description: Postal code of the address
+          type: string
+      required:
+        - street_name
+        - street_number
+        - sublocality
+        - locality
+        - state
+        - country
+        - postal_code
+
+    UpdateCustomerAddressRequest:
+      type: object
+      properties:
+        street_name:
+          description: Street name of the address
+          type: string
+        street_number:
+          description: Street number of the address
+          type: string
+        sublocality:
+          description: Neighborhood or sublocality of the address
+          type: string
+        locality:
+          description: City or locality of the address
+          type: string
+        state:
+          description: State or province of the address
+          type: string
+        country:
+          type: string
+          description: Country code of the address
+        postal_code:
+          description: Postal code of the address
+          type: string
+      required:
+        - street_name
+        - street_number
+        - sublocality
+        - locality
+        - state
+        - country
+        - postal_code
+
     CreateTowerRequest:
       type: object
       description: Request body for creating a new tower
@@ -1713,24 +1979,9 @@ components:
           type: string
           format: email
           description: Customer email address
-        phone:
+        phone_number:
           type: string
           description: Customer phone number
-        address:
-          type: string
-          description: Customer street address
-        city:
-          type: string
-          description: Customer city
-        state:
-          type: string
-          description: Customer state or province
-        zip_code:
-          type: string
-          description: Customer postal code
-        country:
-          type: string
-          description: Customer country
         balance:
           type: number
           format: decimal
@@ -1743,6 +1994,49 @@ components:
           type: string
           format: date-time
           description: Timestamp when the customer account was created
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when the customer account was last updated
+        deleted_at:
+          type: ["string", "null"]
+          format: date-time
+          description: Timestamp when the customer account was deleted (soft delete)
+
+    CustomerAddressResponse:
+      type: object
+      description: Customer address information
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the address
+        street_name:
+          type: string
+          description: Street name of the address
+        street_number:
+          type: string
+          description: Street number
+        apartament_number:
+          type: ["string", "null"]
+          description: Apartment or suite number
+        sublocality:
+          type: string
+          description: Sublocality or neighborhood
+        locality:
+          type: string
+          description: City or locality
+        state:
+          type: string
+          description: State or province
+        country:
+          type: string
+          description: Country code
+        postal_code:
+          type: string
+          description: Postal code
+        customerId:
+          type: integer
+          description: Foreign key to customers table
 
     ServicePlanResponse:
       type: object
@@ -2101,7 +2395,7 @@ components:
 
     PaginationResponse:
       type: object
-      description: Metadata describing pagination information for a paginated response.
+      description: Metadata describing pagination information for a paginated response
       required:
         - page
         - size
@@ -2123,7 +2417,7 @@ components:
 
     AppExceptionResponse:
       type: object
-      description: Standard error response returned when an application exception occurs.
+      description: Standard error response returned when an application exception occurs
       properties:
         message:
           type: string
@@ -2152,7 +2446,7 @@ components:
       name: page
       in: query
       required: false
-      description: Page index (0-based).
+      description: Page index (0-based)
       schema:
         type: integer
         format: int32
@@ -2162,7 +2456,7 @@ components:
       name: size
       in: query
       required: false
-      description: Number of items per page.
+      description: Number of items per page
       schema:
         type: integer
         format: int32
@@ -2172,7 +2466,7 @@ components:
       name: sort
       in: query
       required: false
-      description: Sorting criteria in the format field,asc or field,desc.
+      description: Sorting criteria in the format field,asc or field,desc
       schema:
         type: string
         default: id,asc
