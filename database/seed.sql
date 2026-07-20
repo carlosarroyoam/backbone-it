@@ -2,6 +2,21 @@
 
 USE `backbone-ti`;
 
+INSERT INTO roles (id, type, description) VALUES
+(1, 'App/Admin', 'Admin role'),
+(2, 'App/Supervisor', 'Supervisor role'),
+(3, 'App/Technician', 'Technician role'),
+(4, 'App/Cashier', 'Cashier role'),
+(5, 'App/Support', 'Support role');
+
+INSERT INTO users (id, first_name, last_name, email, password_hash, status, created_at, updated_at, deleted_at) VALUES
+(1, 'Carlos Alberto', 'Arroyo Martínez', 'carlos.arroyo@backbone-it.com', '$2b$10$vNVtCVv7IxX1Q9Whwb//ie6SZROFY4IYcDOSn146SWph8UBEzSYte', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL),
+(2, 'Cathy Stefania', 'Guido Rojas', 'cathy.guido@backbone-it.com', '$2b$10$vNVtCVv7IxX1Q9Whwb//ie6SZROFY4IYcDOSn146SWph8UBEzSYte', 'ACTIVE', CURRENT_TIMESTAMP, CURRENT_TIMESTAMP, NULL);
+
+INSERT INTO user_roles (user_id, role_id) VALUES
+(1, 1),
+(2, 2);
+
 INSERT INTO customers (id, first_name, last_name, phone_number, email, password_hash, status, balance) VALUES
 (1, 'José', 'García', '6181234567', 'jose.garcia@example.com', '$2b$10$xVfYjKn0kPQZ8K5kPQZ8KOqZ8K5kPQZ8K5kPQZ8K5kPQZ8K5kPQZ', 'ACTIVE', 150.00),
 (2, 'María', 'López', '6182345678', 'maria.lopez@example.com', '$2b$10$xVfYjKn0kPQZ8K5kPQZ8KOqZ8K5kPQZ8K5kPQZ8K5kPQZ8K5kPQZ', 'ACTIVE', 200.50),
@@ -16,19 +31,19 @@ INSERT INTO customers (id, first_name, last_name, phone_number, email, password_
 (11, 'Antonio', 'Rojas', '6181112222', 'antonio.rojas@example.com', '$2b$10$xVfYjKn0kPQZ8K5kPQZ8KOqZ8K5kPQZ8K5kPQZ8K5kPQZ8K5kPQZ', 'ACTIVE', 175.00),
 (12, 'Karina', 'Navarro', '6183334444', 'karina.navarro@example.com', '$2b$10$xVfYjKn0kPQZ8K5kPQZ8KOqZ8K5kPQZ8K5kPQZ8K5kPQZ8K5kPQZ', 'ACTIVE', 310.00);
 
-INSERT INTO customer_addresses (id, street_name, street_number, apartament_number, sublocality, locality, state, country, postal_code, customer_id) VALUES 
-(1, 'Av. Tecnológico', '1234', null, 'Del Lago', 'Durango', 'Durango', 'MX', '34080', 1),
-(2, 'Calle 5 de Mayo', '567', null, '	Esperanza','Durango', 'Durango', 'MX', '34000', 2),
-(3, 'Blvd. Francisco Villa', '890', null, '	Nueva Vizcaya', 'Durango', 'Durango', 'MX', '34100', 3),
-(4, 'Calle Juárez', '234', null, '	Del Lago', 'Durango', 'Durango', 'MX', '34050', 4),
-(5, 'Av. Mazatlán', '456', null, '	Los Pinos', 'Sinaloa', 'Mazatlán', 'MX', '82000', 5),
-(6, 'Calle Hidalgo', '789', null, 'Rosas del Tepeyac', 'Durango', 'Durango', 'MX', '34020', 6),
-(7, 'Av. La Costa', '321', null, 'Plaza Náutica', 'Cabo San Lucas', 'Baja California Sur', 'MX', '23450', 7),
-(8, 'Calle Allende', '654', null, 'Gómez Palacio Centro', 'Gómez Palacio', 'Durango', 'MX', '35000', 8),
-(9, 'Blvd. Las Americas', '777', null, 'Centro', 'Torreón', 'Coahuila', 'MX', '27000', 9),
-(10, 'Av. Central', '432', null, 'Torreón Centro', 'Lerdo', 'Durango', 'MX', '35150', 10),
-(11, 'Calle México', '111', null, 'Monterrey Centro', 'Monterrey', 'Nuevo León', 'MX', '64000', 11),
-(12, 'Av. Universidad', '555', null, 'San Francisco', 'Puebla', 'Puebla', 'MX', '72000', 12);
+INSERT INTO customer_addresses (id, street_name, street_number, apartment_number, sublocality, locality, state, country, postal_code, is_default, customer_id) VALUES
+(1, 'Av. Tecnológico', '1234', null, 'Del Lago', 'Durango', 'Durango', 'MX', '34080', 1, 1),
+(2, 'Calle 5 de Mayo', '567', null, '	Esperanza','Durango', 'Durango', 'MX', '34000', 1, 2),
+(3, 'Blvd. Francisco Villa', '890', null, '	Nueva Vizcaya', 'Durango', 'Durango', 'MX', '34100', 1, 3),
+(4, 'Calle Juárez', '234', null, '	Del Lago', 'Durango', 'Durango', 'MX', '34050', 1, 4),
+(5, 'Av. Mazatlán', '456', null, '	Los Pinos', 'Sinaloa', 'Mazatlán', 'MX', '82000', 1, 5),
+(6, 'Calle Hidalgo', '789', null, 'Rosas del Tepeyac', 'Durango', 'Durango', 'MX', '34020', 1, 6),
+(7, 'Av. La Costa', '321', null, 'Plaza Náutica', 'Cabo San Lucas', 'Baja California Sur', 'MX', '23450', 1, 7),
+(8, 'Calle Allende', '654', null, 'Gómez Palacio Centro', 'Gómez Palacio', 'Durango', 'MX', '35000', 1, 8),
+(9, 'Blvd. Las Americas', '777', null, 'Centro', 'Torreón', 'Coahuila', 'MX', '27000', 1, 9),
+(10, 'Av. Central', '432', null, 'Torreón Centro', 'Lerdo', 'Durango', 'MX', '35150', 1, 10),
+(11, 'Calle México', '111', null, 'Monterrey Centro', 'Monterrey', 'Nuevo León', 'MX', '64000', 1, 11),
+(12, 'Av. Universidad', '555', null, 'San Francisco', 'Puebla', 'Puebla', 'MX', '72000', 1, 12);
 
 INSERT INTO towers (id, name, code, address, latitude, longitude, status) VALUES
 (1, 'Torre Durango Centro', 'TWR-DGO-001', 'Av. Tecnológico s/n, Durango, Durango', 24.0277, -104.6534, 'ACTIVE'),
@@ -101,26 +116,26 @@ INSERT INTO subscriptions (id, username, password, pppoe_ip_address, static_ip_a
 
 INSERT INTO transactions (id, type, amount, payment_method, reference, description, customer_id) VALUES
 (1, 'TOPUP', 300.00, 'BANK_TRANSFER', 'DEP-001', 'Depósito bancario inicial', 1),
-(2, 'PAYMENT', -199.00, 'GATEWAY', 'PAY-001', 'Pago plan mensual', 1),
+(2, 'PAYMENT', -199.00, 'CASH', 'PAY-001', 'Pago plan mensual', 1),
 (3, 'TOPUP', 500.00, 'CASH', 'EFE-001', 'Pago en efectivo', 2),
-(4, 'PAYMENT', -299.00, 'GATEWAY', 'PAY-002', 'Pago plan mensual', 2),
+(4, 'PAYMENT', -299.00, 'CASH', 'PAY-002', 'Pago plan mensual', 2),
 (5, 'TOPUP', 200.00, 'BANK_TRANSFER', 'DEP-002', 'Depósito bancario', 3),
-(6, 'PAYMENT', -125.00, 'GATEWAY', 'PAY-003', 'Pago plan mensual', 3),
+(6, 'PAYMENT', -125.00, 'CASH', 'PAY-003', 'Pago plan mensual', 3),
 (7, 'TOPUP', 600.00, 'CREDIT_CARD', 'TAR-001', 'Pago con tarjeta', 4),
-(8, 'PAYMENT', -300.00, 'GATEWAY', 'PAY-004', 'Pago plan mensual', 4),
+(8, 'PAYMENT', -300.00, 'CASH', 'PAY-004', 'Pago plan mensual', 4),
 (9, 'TOPUP', 250.00, 'BANK_TRANSFER', 'DEP-003', 'Depósito bancario', 5),
-(10, 'PAYMENT', -125.00, 'GATEWAY', 'PAY-005', 'Pago plan mensual', 5),
+(10, 'PAYMENT', -125.00, 'CASH', 'PAY-005', 'Pago plan mensual', 5),
 (11, 'TOPUP', 1000.00, 'BANK_TRANSFER', 'DEP-004', 'Depósito bancario plan negocio', 7),
-(12, 'PAYMENT', -399.00, 'GATEWAY', 'PAY-006', 'Pago plan mensual', 7),
+(12, 'PAYMENT', -399.00, 'CASH', 'PAY-006', 'Pago plan mensual', 7),
 (13, 'TOPUP', 400.00, 'CASH', 'EFE-002', 'Pago en efectivo', 8),
-(14, 'PAYMENT', -220.00, 'GATEWAY', 'PAY-007', 'Pago plan mensual', 8),
+(14, 'PAYMENT', -220.00, 'CASH', 'PAY-007', 'Pago plan mensual', 8),
 (15, 'TOPUP', 150.00, 'BANK_TRANSFER', 'DEP-005', 'Depósito bancario', 9),
 (16, 'TOPUP', 450.00, 'CREDIT_CARD', 'TAR-002', 'Pago con tarjeta', 10),
-(17, 'PAYMENT', -230.00, 'GATEWAY', 'PAY-008', 'Pago plan mensual', 10),
+(17, 'PAYMENT', -230.00, 'CASH', 'PAY-008', 'Pago plan mensual', 10),
 (18, 'TOPUP', 500.00, 'BANK_TRANSFER', 'DEP-006', 'Depósito bancario', 11),
-(19, 'PAYMENT', -325.00, 'GATEWAY', 'PAY-009', 'Pago plan mensual', 11),
+(19, 'PAYMENT', -325.00, 'CASH', 'PAY-009', 'Pago plan mensual', 11),
 (20, 'TOPUP', 600.00, 'BANK_TRANSFER', 'DEP-007', 'Depósito bancario', 12),
-(21, 'PAYMENT', -380.00, 'GATEWAY', 'PAY-010', 'Pago plan mensual', 12);
+(21, 'PAYMENT', -380.00, 'CASH', 'PAY-010', 'Pago plan mensual', 12);
 
 INSERT INTO tickets (id, ticket_number, category, priority, subject, description, status, customer_id, created_at) VALUES
 (1, 'TKT-001', 'technical', 'HIGH', 'Conexión lenta', 'Experimento velocidades muy bajas desde hace 2 días', 'OPEN', 3, '2024-06-01 10:00:00'),

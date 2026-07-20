@@ -18,8 +18,12 @@ servers:
     description: Development server
 
 tags:
-  - name: Authentication
+  - name: Auth
     description: API authentication and authorization
+  - name: API Keys
+    description: API Keys management
+  - name: Users
+    description: Staff user account management
   - name: Customers
     description: Customer account management
   - name: Customer addresses
@@ -36,73 +40,131 @@ tags:
     description: Balance, transactions, and invoices
   - name: Support
     description: Helpdesk tickets
-  - name: RADIUS
-    description: RADIUS and PPPoE authentication integration
 
 paths:
   /auth/login:
     post:
       tags:
-        - Authentication
-      summary: Authenticates and gets API token
+        - Auth
+      summary: Authenticates a user
       operationId: login
       requestBody:
-        required: true
+        description: User credentials object that will be authenticated
         content:
           application/json:
             schema:
               $ref: "#/components/schemas/LoginRequest"
+        required: true
       responses:
         "200":
-          description: Login successful
+          description: OK
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  access_token:
-                    type: string
-                    description: JWT access token for API authentication
-                  token_type:
-                    type: string
-                    description: Type of token (Bearer)
-                    examples:
-                      - Bearer
-                  expires_in:
-                    type: integer
-                    description: Token expiration time in seconds
+                $ref: "#/components/schemas/LoginResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
         "422":
           $ref: "#/components/responses/UnprocessableEntity"
         "500":
           $ref: "#/components/responses/InternalServerError"
 
-  /auth/register:
+  /auth/logout:
     post:
       tags:
-        - Authentication
-      summary: Registers a new customer account
-      operationId: registerCustomer
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/CreateCustomerRequest"
+        - Auth
+      summary: Revokes a refresh token
+      operationId: logout
       responses:
-        "201":
-          $ref: "#/components/responses/Created"
+        "204":
+          $ref: "#/components/responses/NoContent"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
           $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /auth/refresh-token:
+    post:
+      tags:
+        - Auth
+      summary: Rotates a user's tokens
+      operationId: refreshToken
+      requestBody:
+        description: Refresh token context used to rotate the user's tokens
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RefreshTokenRequest"
+        required: true
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /auth/forgot-password:
+    post:
+      tags:
+        - Auth
+      summary: Requests a user password reset
+      operationId: forgotPassword
+      requestBody:
+        description: User credentials object that will be reset
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ForgotPasswordRequest"
+        required: true
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+
+  /auth/reset-password:
+    post:
+      tags:
+        - Auth
+      summary: Resets a user password
+      operationId: resetPassword
+      parameters:
+        - name: token
+          in: query
+          required: true
+          schema:
+            type: string
+      requestBody:
+        description: User password object that will be changed
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ResetPasswordRequest"
+        required: true
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "422":
           $ref: "#/components/responses/UnprocessableEntity"
         "500":
@@ -111,7 +173,7 @@ paths:
   /auth/api-keys:
     get:
       tags:
-        - Authentication
+        - API Keys
       summary: Lists API keys for current customer
       operationId: findAllApiKeys
       parameters:
@@ -136,8 +198,315 @@ paths:
           $ref: "#/components/responses/InternalServerError"
       security:
         - BearerAuth: []
+    post:
+      tags:
+        - API Keys
+      summary: Creates an API key for the current customer
+      operationId: createApiKey
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateApiKeyRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiKeyResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+
+  /users:
+    get:
+      tags:
+        - Users
+      summary: Lists all users
+      operationId: findAllUsers
+      parameters:
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - $ref: "#/components/parameters/SortParam"
+        - name: firstName
+          in: query
+          required: false
+          description: User's first name
+          schema:
+            type: string
+            maxLength: 64
+        - name: lastName
+          in: query
+          required: false
+          description: User's last name
+          schema:
+            type: string
+            maxLength: 64
+        - name: email
+          in: query
+          required: false
+          description: User's email address
+          schema:
+            type: string
+            maxLength: 64
+        - name: status
+          in: query
+          required: false
+          description: User status
+          schema:
+            type: string
+            enum: [PENDING, ACTIVE, SUSPENDED, DELETED]
+        - name: startDate
+          in: query
+          required: false
+          description: Start date for date range filter in the ISO format YYYY-MM-DD
+          schema:
+            type: string
+            format: date
+        - name: endDate
+          in: query
+          required: false
+          description: End date for date range filter in the ISO format YYYY-MM-DD
+          schema:
+            type: string
+            format: date
+        - name: roleIds
+          in: query
+          required: false
+          description: User role identifiers (comma-separated list)
+          schema:
+            type: array
+            items:
+              type: integer
+              format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedUsersResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+
+  /users/{userId}:
+    get:
+      tags:
+        - Users
+      summary: Gets a user by ID
+      operationId: findUserById
+      parameters:
+        - name: userId
+          in: path
+          description: ID of user to query
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+
+    delete:
+      tags:
+        - Users
+      summary: Deletes a user by ID
+      operationId: deleteUser
+      parameters:
+        - name: userId
+          in: path
+          description: ID of user to deactivate
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+
+  /users/{userId}/suspend:
+    post:
+      tags:
+        - Users
+      summary: Suspends a user by ID
+      operationId: suspendUser
+      parameters:
+        - name: userId
+          in: path
+          description: ID of user to suspend
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+
+  /users/{userId}/activate:
+    post:
+      tags:
+        - Users
+      summary: Activates a user by ID
+      operationId: activateUser
+      parameters:
+        - name: userId
+          in: path
+          description: ID of user to active
+          required: true
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+
+  /users/{userId}/change-password:
+    put:
+      tags:
+        - Users
+      summary: Changes a user's password
+      operationId: changePassword
+      parameters:
+        - name: userId
+          in: path
+          description: ID of user to change its password
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        description: User credentials object that will be changed
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ChangePasswordRequest"
+        required: true
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
 
   /customers:
+    post:
+      tags:
+        - Customers
+      summary: Creates a customer
+      operationId: createCustomer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateCustomerRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/CustomerResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
     get:
       tags:
         - Customers
@@ -152,14 +521,14 @@ paths:
           description: Filter customers by status
           schema:
             type: string
-            enum: [ACTIVE, SUSPENDED, CANCELLED]
+            enum: [PENDING, ACTIVE, SUSPENDED, DELETED]
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PagedCustomerResponse"
+                $ref: "#/components/schemas/PagedCustomersResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -531,12 +900,12 @@ paths:
       security:
         - BearerAuth: []
 
-  /plans:
+  /service-plans:
     get:
       tags:
         - Service plans
       summary: Lists available service plans
-      operationId: findAllPlans
+      operationId: findAllServicePlans
       parameters:
         - $ref: "#/components/parameters/PageParam"
         - $ref: "#/components/parameters/SizeParam"
@@ -561,14 +930,14 @@ paths:
       security:
         - BearerAuth: []
 
-  /plans/{planId}:
+  /service-plans/{servicePlanId}:
     get:
       tags:
         - Service plans
       summary: Gets service plan details
-      operationId: findPlanById
+      operationId: findServicePlanById
       parameters:
-        - name: planId
+        - name: servicePlanId
           in: path
           required: true
           description: Unique identifier of the service plan
@@ -789,7 +1158,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/PageResponsewerResponse"
+                $ref: "#/components/schemas/PagedTowerResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -1415,49 +1784,100 @@ paths:
       security:
         - BearerAuth: []
 
-  /radius/auth:
-    post:
-      tags:
-        - RADIUS
-      summary: RADIUS authentication endpoint
-      description: For PPPoE/RADIUS server integration
-      operationId: radiusAuth
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/RadiusAuthRequest"
-      responses:
-        "200":
-          description: Authentication accepted
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  access_accept:
-                    type: boolean
-                    description: Indicates authentication was successful
-                  reply_message:
-                    type: string
-                    description: Optional reply message from the RADIUS server
-        "400":
-          $ref: "#/components/responses/BadRequest"
-        "401":
-          $ref: "#/components/responses/Unauthorized"
-        "403":
-          $ref: "#/components/responses/Forbidden"
-        "422":
-          $ref: "#/components/responses/UnprocessableEntity"
-        "500":
-          $ref: "#/components/responses/InternalServerError"
-      security:
-        - BearerAuth: []
-
 components:
   schemas:
-    PagedCustomerResponse:
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          description: User's email address
+          type: string
+        password:
+          description: User's password
+          type: string
+        device_fingerprint:
+          description: Device fingerprint used to identify the client device
+          type: string
+      required:
+        - email
+        - password
+        - device_fingerprint
+
+    RefreshTokenRequest:
+      type: object
+      properties:
+        device_fingerprint:
+          description: Device fingerprint used to identify the client device
+          type: string
+      required:
+        - device_fingerprint
+
+    ForgotPasswordRequest:
+      type: object
+      properties:
+        email:
+          description: User's email address
+          type: string
+      required:
+        - email
+
+    ResetPasswordRequest:
+      type: object
+      properties:
+        password:
+          description: New password for the user account
+          type: string
+        confirm_password:
+          description: Confirmation of the new password
+          type: string
+      required:
+        - password
+        - confirm_password
+
+    ChangePasswordRequest:
+      type: object
+      properties:
+        current_password:
+          description: User's current password
+          type: string
+        new_password:
+          description: New password for the user account
+          type: string
+        confirm_password:
+          description: Confirmation of the new password
+          type: string
+      required:
+        - current_password
+        - new_password
+        - confirm_password
+
+    CreateApiKeyRequest:
+      type: object
+      description: Request body for creating a new API key
+      required:
+        - name
+      properties:
+        name:
+          type: string
+          description: API key name
+        expires_in_days:
+          type: integer
+          description: Number of days until the API key expires
+
+    PagedUsersResponse:
+      type: object
+      description: Paginated list of users response
+      properties:
+        items:
+          type: array
+          description: List of users
+          items:
+            $ref: "#/components/schemas/UserResponse"
+        pagination:
+          description: Pagination metadata
+          $ref: "#/components/schemas/PaginationResponse"
+
+    PagedCustomersResponse:
       type: object
       description: Paginated response containing a list of customers and pagination metadata
       required:
@@ -1505,7 +1925,7 @@ components:
           $ref: "#/components/schemas/PaginationResponse"
           description: Pagination metadata for the current result set
 
-    PageResponsewerResponse:
+    PagedTowerResponse:
       type: object
       description: Paginated response containing a list of towers and pagination metadata
       required:
@@ -1621,11 +2041,18 @@ components:
       type: object
       description: Request body for registering a new customer account
       required:
-        - email
-        - password
         - first_name
         - last_name
+        - email
+        - password
+        - phone_number
       properties:
+        first_name:
+          type: string
+          description: Customer first name
+        last_name:
+          type: string
+          description: Customer last name
         email:
           type: string
           format: email
@@ -1635,43 +2062,9 @@ components:
           format: password
           description: Customer account password
           minLength: 8
-        first_name:
-          type: string
-          description: Customer first name
-        last_name:
-          type: string
-          description: Customer last name
-        phone:
+        phone_number:
           type: string
           description: Customer phone number
-
-    LoginRequest:
-      type: object
-      description: Request body for authenticating a customer
-      required:
-        - email
-        - password
-      properties:
-        email:
-          type: string
-          format: email
-          description: Customer email address
-        password:
-          type: string
-          description: Customer account password
-
-    CreateApiKeyRequest:
-      type: object
-      description: Request body for creating a new API key
-      required:
-        - name
-      properties:
-        name:
-          type: string
-          description: API key name
-        expires_in_days:
-          type: integer
-          description: Number of days until the API key expires
 
     CreateSubscriptionRequest:
       type: object
@@ -1680,6 +2073,8 @@ components:
         - plan_id
         - username
         - password
+        - customer_id
+        - customer_address_id
       properties:
         plan_id:
           type: integer
@@ -1690,6 +2085,12 @@ components:
         password:
           type: string
           description: PPPoE password for the subscription
+        customer_id:
+          type: integer
+          description: Customer identifier
+        customer_address_id:
+          type: integer
+          description: Customer address identifier
         device_id:
           type: integer
           description: Network device identifier to assign
@@ -1727,7 +2128,7 @@ components:
         payment_method:
           type: string
           description: Payment method used for the top-up
-          enum: [CASH, BANK_TRANSFER, CREDIT_CARD, GATEWAY]
+          enum: [CASH, BANK_TRANSFER, CREDIT_CARD, DEBIT_CARD]
         reference:
           type: string
           description: External payment reference or transaction identifier
@@ -1766,26 +2167,6 @@ components:
           type: string
           description: Support ticket message content
 
-    RadiusAuthRequest:
-      type: object
-      description: Request body for RADIUS authentication
-      required:
-        - username
-        - password
-      properties:
-        username:
-          type: string
-          description: PPPoE username for authentication
-        password:
-          type: string
-          description: PPPoE password for authentication
-        nas_ip_address:
-          type: string
-          description: Network access server IP address
-        framed_ip_address:
-          type: string
-          description: Framed IP address assigned to the session, if any
-
     UpdateCustomerRequest:
       type: object
       description: Fields that can be updated for a customer
@@ -1796,21 +2177,9 @@ components:
         last_name:
           type: string
           description: Customer last name
-        phone:
+        phone_number:
           type: string
           description: Customer phone number
-        address:
-          type: string
-          description: Customer street address
-        city:
-          type: string
-          description: Customer city
-        state:
-          type: string
-          description: Customer state or province
-        zip_code:
-          type: string
-          description: Customer postal code
 
     CreateCustomerAddressRequest:
       type: object
@@ -1820,6 +2189,9 @@ components:
           type: string
         street_number:
           description: Street number of the address
+          type: string
+        apartment_number:
+          description: Apartment or suite number
           type: string
         sublocality:
           description: Neighborhood or sublocality of the address
@@ -1836,6 +2208,10 @@ components:
         postal_code:
           description: Postal code of the address
           type: string
+        is_default:
+          type: boolean
+          description: Whether this is the default address
+          default: true
       required:
         - street_name
         - street_number
@@ -1962,6 +2338,87 @@ components:
           type: string
           description: Device IP address
 
+    LoginResponse:
+      type: object
+      description: Login response with user information
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the user
+        first_name:
+          type: string
+          description: User's first name
+        last_name:
+          type: string
+          description: User's last name
+        email:
+          type: string
+          description: User's email address
+        roles:
+          type: array
+          description: Roles assigned to the user
+          items:
+            $ref: "#/components/schemas/UserRoleResponse"
+        access_token:
+          type: string
+          description: Access token
+        refresh_token:
+          type: string
+          description: Refresh token
+
+    UserResponse:
+      type: object
+      description: User information
+      properties:
+        id:
+          type: integer
+          description: Unique identifier for the user
+        first_name:
+          type: string
+          description: User's first name
+        last_name:
+          type: string
+          description: User's last name
+        email:
+          type: string
+          description: User's email address
+        status:
+          type: string
+          enum: [PENDING, ACTIVE, SUSPENDED, DELETED]
+          description: User status
+        roles:
+          type: array
+          description: Roles assigned to the user
+          items:
+            $ref: "#/components/schemas/UserRoleResponse"
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the user was created
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when the user was last updated
+        deleted_at:
+          type: ["string", "null"]
+          format: date-time
+          description: Timestamp when the user was deleted (soft delete)
+
+    UserRoleResponse:
+      type: object
+      description: User role information
+      properties:
+        id:
+          type: integer
+          format: int8
+          description: Unique identifier for the role
+        type:
+          type: string
+          description: Type of user role
+        description:
+          type: string
+          description: Description of the role
+
     CustomerResponse:
       type: object
       description: Customer account information
@@ -2016,7 +2473,7 @@ components:
         street_number:
           type: string
           description: Street number
-        apartament_number:
+        apartment_number:
           type: ["string", "null"]
           description: Apartment or suite number
         sublocality:
@@ -2034,9 +2491,20 @@ components:
         postal_code:
           type: string
           description: Postal code
-        customerId:
+        is_default:
+          type: boolean
+          description: Whether the address is default
+        customer_id:
           type: integer
           description: Foreign key to customers table
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the address was created
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when the address was last updated
 
     ServicePlanResponse:
       type: object
@@ -2052,13 +2520,13 @@ components:
           type: string
           description: Internal service plan code
         description:
-          type: string
+          type: ["string", "null"]
           description: Service plan description
         download_speed_mbps:
-          type: integer
+          type: ["integer", "null"]
           description: Maximum download speed in Mbps
         upload_speed_mbps:
-          type: integer
+          type: ["integer", "null"]
           description: Maximum upload speed in Mbps
         price:
           type: number
@@ -2068,9 +2536,22 @@ components:
           type: string
           enum: [MONTHLY, QUARTERLY, YEARLY]
           description: Service plan billing cycle
-        is_active:
-          type: boolean
-          description: Whether the plan is available for new subscriptions
+        status:
+          type: string
+          enum: [ACTIVE, INACTIVE, DELETED]
+          description: Service plan status
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the plan was created
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when the plan was last updated
+        deleted_at:
+          type: ["string", "null"]
+          format: date-time
+          description: Timestamp when the plan was deleted (soft delete)
 
     SubscriptionResponse:
       type: object
@@ -2082,6 +2563,9 @@ components:
         customer_id:
           type: integer
           description: ID of the customer who owns this subscription
+        customer_address_id:
+          type: integer
+          description: Customer address used by the subscription
         plan_id:
           type: integer
           description: Service plan identifier
@@ -2089,26 +2573,37 @@ components:
           $ref: "#/components/schemas/ServicePlanResponse"
           description: Service plan assigned to the subscription
         device_id:
-          type: integer
+          type: ["integer", "null"]
           description: Assigned network device identifier
         username:
           type: string
           description: PPPoE username for the subscription
         pppoe_ip_address:
-          type: string
+          type: ["string", "null"]
           description: Assigned PPPoE IP address
         static_ip_address:
-          type: string
+          type: ["string", "null"]
           description: Assigned static IP address (if any)
         status:
           type: string
           enum: [ACTIVE, SUSPENDED, CANCELLED]
           description: Subscription status
         activated_at:
-          type: string
+          type: ["string", "null"]
           format: date-time
           description: Timestamp when the subscription was activated
+        suspended_at:
+          type: ["string", "null"]
+          format: date-time
+          description: Timestamp when the subscription was suspended
+        cancelled_at:
+          type: ["string", "null"]
+          format: date-time
+          description: Timestamp when the subscription was cancelled
         created_at:
+          type: string
+          format: date-time
+        updated_at:
           type: string
           format: date-time
           description: Timestamp when the subscription was created
@@ -2127,20 +2622,32 @@ components:
           type: string
           description: Internal tower code
         address:
-          type: string
+          type: ["string", "null"]
           description: Tower physical address
         latitude:
-          type: number
+          type: ["number", "null"]
           format: decimal
           description: Tower latitude
         longitude:
-          type: number
+          type: ["number", "null"]
           format: decimal
           description: Tower longitude
         status:
           type: string
-          enum: [ACTIVE, MAINTENANCE, INACTIVE]
+          enum: [ACTIVE, INACTIVE, MAINTENANCE, DELETED]
           description: Tower operational status
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the tower was created
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when the tower was last updated
+        deleted_at:
+          type: ["string", "null"]
+          format: date-time
+          description: Timestamp when the tower was deleted (soft delete)
         sectors:
           type: array
           items:
@@ -2170,18 +2677,30 @@ components:
           type: integer
           description: Beam angle width in degrees
         frequency_band:
-          type: string
+          type: ["string", "null"]
           description: Operating frequency band (e.g., 2.4GHz, 5GHz)
         channel_width:
-          type: integer
+          type: ["integer", "null"]
           description: Channel width in MHz
         tx_power:
-          type: integer
+          type: ["integer", "null"]
           description: Transmit power in dBm
         status:
           type: string
-          enum: [ACTIVE, MAINTENANCE, INACTIVE]
+          enum: [ACTIVE, INACTIVE, MAINTENANCE, DELETED]
           description: Sector operational status
+        created_at:
+          type: string
+          format: date-time
+          description: Timestamp when the sector was created
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when the sector was last updated
+        deleted_at:
+          type: ["string", "null"]
+          format: date-time
+          description: Timestamp when the sector was deleted (soft delete)
 
     NetworkDeviceResponse:
       type: object
@@ -2198,34 +2717,42 @@ components:
           enum: [CPE, AP, ROUTER, SWITCH, ONT, OTHER]
           description: Type of network device
         vendor:
-          type: string
+          type: ["string", "null"]
           description: Device manufacturer
         model:
-          type: string
+          type: ["string", "null"]
           description: Device model
         serial_number:
-          type: string
+          type: ["string", "null"]
           description: Device serial number
         firmware_version:
-          type: string
+          type: ["string", "null"]
           description: Installed firmware version
         ip_address:
-          type: string
+          type: ["string", "null"]
           description: Device IP address
         sector_id:
-          type: integer
+          type: ["integer", "null"]
           description: ID of the sector this device is assigned to
         customer_id:
-          type: integer
+          type: ["integer", "null"]
           description: ID of the customer who owns this device
         status:
           type: string
-          enum: [ONLINE, OFFLINE, PROVISIONED, DECOMMISSIONED]
+          enum: [ONLINE, OFFLINE, PROVISIONED, DECOMMISSIONED, DELETED]
           description: Device operational status
         created_at:
           type: string
           format: date-time
           description: Device registration timestamp
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when the device was last updated
+        deleted_at:
+          type: ["string", "null"]
+          format: date-time
+          description: Timestamp when the device was deleted (soft delete)
 
     TransactionResponse:
       type: object
@@ -2247,6 +2774,7 @@ components:
           description: Transaction amount
         payment_method:
           type: string
+          enum: [CREDIT_CARD, DEBIT_CARD, BANK_TRANSFER, CASH]
           description: Payment method used
         reference:
           type: string
@@ -2269,11 +2797,14 @@ components:
         invoice_number:
           type: string
           description: Human-readable invoice number
+        notes:
+          type: ["string", "null"]
+          description: Invoice notes
         customer_id:
           type: integer
           description: ID of the customer invoiced
         subscription_id:
-          type: integer
+          type: ["integer", "null"]
           description: ID of the subscription this invoice is for
         amount:
           type: number
@@ -2284,17 +2815,21 @@ components:
           enum: [DRAFT, SENT, PAID, OVERDUE, CANCELLED]
           description: Invoice payment status
         due_date:
-          type: string
+          type: ["string", "null"]
           format: date
           description: Invoice due date
         paid_at:
-          type: string
+          type: ["string", "null"]
           format: date-time
           description: Timestamp when the invoice was paid
         created_at:
           type: string
           format: date-time
           description: Timestamp when the invoice was created
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when the invoice was last updated
 
     ApiKeyResponse:
       type: object
@@ -2308,20 +2843,24 @@ components:
           description: User-defined name for the API key
         status:
           type: string
-          enum: [active, revoked]
+          enum: [ACTIVE, INACTIVE]
           description: API key status
         last_used_at:
-          type: string
+          type: ["string", "null"]
           format: date-time
           description: Timestamp when the API key was last used
         expires_at:
-          type: string
+          type: ["string", "null"]
           format: date-time
           description: API key expiration timestamp
         created_at:
           type: string
           format: date-time
           description: Timestamp when the API key was created
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when the API key was last updated
 
     TicketResponse:
       type: object
@@ -2351,10 +2890,22 @@ components:
           type: string
           enum: [OPEN, IN_PROGRESS, PENDING, RESOLVED, CLOSED]
           description: Ticket status
+        resolved_at:
+          type: ["string", "null"]
+          format: date-time
+          description: Timestamp when the ticket was resolved
+        closed_at:
+          type: ["string", "null"]
+          format: date-time
+          description: Timestamp when the ticket was closed
         created_at:
           type: string
           format: date-time
           description: Timestamp when the ticket was created
+        updated_at:
+          type: string
+          format: date-time
+          description: Timestamp when the ticket was last updated
 
     TicketDetailResponse:
       allOf:
@@ -2366,12 +2917,8 @@ components:
               type: string
               description: Detailed description of the support issue
             assigned_to:
-              type: integer
+              type: ["integer", "null"]
               description: Identifier of the user assigned to the ticket
-            resolved_at:
-              type: string
-              format: date-time
-              description: Timestamp when the ticket was resolved
             messages:
               type: array
               description: Messages associated with the ticket
@@ -2392,6 +2939,10 @@ components:
                     type: string
                     format: date-time
                     description: Timestamp when the message was created
+                  updated_at:
+                    type: string
+                    format: date-time
+                    description: Timestamp when the message was last updated
 
     PaginationResponse:
       type: object
