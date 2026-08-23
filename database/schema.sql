@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS customers (
     last_name VARCHAR(100) NOT NULL,
     phone_number VARCHAR(10) NOT NULL,
     email VARCHAR(255) NOT NULL,
-    password VARCHAR(255) NOT NULL,
+    password_hash VARCHAR(255) NOT NULL,
     balance DECIMAL(10,2) NOT NULL DEFAULT 0.00,
     status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE' CHECK(status IN ('PENDING', 'ACTIVE', 'SUSPENDED', 'DELETED')),
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -98,8 +98,10 @@ CREATE TABLE IF NOT EXISTS customer_addresses (
     customer_id BIGINT UNSIGNED NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP DEFAULT NULL,
     PRIMARY KEY (id),
     INDEX idx_customer_addresses_customer_id (customer_id),
+    INDEX idx_customer_addresses_deleted_at (deleted_at),
     CONSTRAINT fk_customer_addresses_customer_id
         FOREIGN KEY (customer_id) REFERENCES customers (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
@@ -336,7 +338,7 @@ CREATE TABLE IF NOT EXISTS tickets (
 
 CREATE TABLE IF NOT EXISTS ticket_messages (
     id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT,
-    user_type VARCHAR(32) NOT NULL,
+    user_type VARCHAR(32) NOT NULL CHECK(user_type IN ('CUSTOMER', 'STAFF')),
     message TEXT NOT NULL,
     ticket_id BIGINT UNSIGNED NOT NULL,
     user_id BIGINT UNSIGNED,

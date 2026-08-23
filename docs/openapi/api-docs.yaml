@@ -24,6 +24,8 @@ tags:
     description: API Keys management
   - name: Users
     description: Staff user account management
+  - name: Roles
+    description: Staff role catalog
   - name: Customers
     description: Customer account management
   - name: Customer addresses
@@ -215,7 +217,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: "#/components/schemas/ApiKeyResponse"
+                $ref: "#/components/schemas/CreateApiKeyResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -285,6 +287,8 @@ paths:
           in: query
           required: false
           description: User role identifiers (comma-separated list)
+          style: form
+          explode: false
           schema:
             type: array
             items:
@@ -305,6 +309,37 @@ paths:
           $ref: "#/components/responses/Forbidden"
         "404":
           $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+
+    post:
+      tags:
+        - Users
+      summary: Creates a staff user
+      operationId: createUser
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateUserRequest"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/UserResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "422":
           $ref: "#/components/responses/UnprocessableEntity"
         "500":
@@ -348,6 +383,43 @@ paths:
       security:
         - BearerAuth: []
 
+    put:
+      tags:
+        - Users
+      summary: Updates a user by ID
+      operationId: updateUser
+      parameters:
+        - name: userId
+          in: path
+          description: ID of user to update
+          required: true
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateUserRequest"
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+
     delete:
       tags:
         - Users
@@ -364,6 +436,8 @@ paths:
       responses:
         "204":
           $ref: "#/components/responses/NoContent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -394,6 +468,8 @@ paths:
       responses:
         "204":
           $ref: "#/components/responses/NoContent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
         "401":
           $ref: "#/components/responses/Unauthorized"
         "403":
@@ -471,6 +547,30 @@ paths:
           $ref: "#/components/responses/NotFound"
         "422":
           $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+
+  /roles:
+    get:
+      tags:
+        - Roles
+      summary: Lists all available staff roles
+      operationId: findAllRoles
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/UserRoleResponse"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
         "500":
           $ref: "#/components/responses/InternalServerError"
       security:
@@ -702,6 +802,130 @@ paths:
       security:
         - BearerAuth: []
 
+  /customers/{customerId}/balance:
+    get:
+      tags:
+        - Billing
+      summary: Gets a customer's balance (staff access)
+      operationId: getCustomerBalanceById
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          description: Unique identifier of the customer
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "200":
+          description: Balance information
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/BalanceResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+
+  /customers/{customerId}/transactions:
+    get:
+      tags:
+        - Billing
+      summary: Gets a customer's transaction history (staff access)
+      operationId: findAllTransactionsByCustomer
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          description: Unique identifier of the customer
+          schema:
+            type: integer
+            format: int64
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - $ref: "#/components/parameters/SortParam"
+        - name: type
+          in: query
+          description: Filter transactions by type
+          schema:
+            type: string
+            enum: [TOPUP, PAYMENT, REFUND, ADJUSTMENT]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedTransactionResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+
+  /customers/{customerId}/invoices:
+    get:
+      tags:
+        - Billing
+      summary: Gets a customer's invoices (staff access)
+      operationId: findAllInvoicesByCustomer
+      parameters:
+        - name: customerId
+          in: path
+          required: true
+          description: Unique identifier of the customer
+          schema:
+            type: integer
+            format: int64
+        - $ref: "#/components/parameters/PageParam"
+        - $ref: "#/components/parameters/SizeParam"
+        - $ref: "#/components/parameters/SortParam"
+        - name: status
+          in: query
+          description: Filter invoices by status
+          schema:
+            type: string
+            enum: [DRAFT, SENT, PAID, OVERDUE, CANCELLED]
+      responses:
+        "200":
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/PagedInvoiceResponse"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+
   /customers/{customerId}/addresses:
     get:
       tags:
@@ -715,15 +939,14 @@ paths:
           description: ID of the customer to retrieve its addresses
           schema:
             type: integer
+            format: int64
       responses:
         "200":
           description: OK
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: "#/components/schemas/CustomerAddressResponse"
+                $ref: "#/components/schemas/PagedCustomerAddressResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -751,6 +974,7 @@ paths:
           description: ID of the customer to retrieve its addresses
           schema:
             type: integer
+            format: int64
       requestBody:
         description: Address object that needs to be added
         content:
@@ -910,6 +1134,12 @@ paths:
         - $ref: "#/components/parameters/PageParam"
         - $ref: "#/components/parameters/SizeParam"
         - $ref: "#/components/parameters/SortParam"
+        - name: status
+          in: query
+          description: Filter service plans by status
+          schema:
+            type: string
+            enum: [ACTIVE, INACTIVE, DELETED]
       responses:
         "200":
           description: OK
@@ -964,6 +1194,35 @@ paths:
       security:
         - BearerAuth: []
 
+    delete:
+      tags:
+        - Service plans
+      summary: Deletes a service plan by ID
+      operationId: deleteServicePlan
+      parameters:
+        - name: servicePlanId
+          in: path
+          required: true
+          description: Unique identifier of the service plan
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+
   /subscriptions:
     get:
       tags:
@@ -973,6 +1232,13 @@ paths:
       parameters:
         - $ref: "#/components/parameters/PageParam"
         - $ref: "#/components/parameters/SizeParam"
+        - $ref: "#/components/parameters/SortParam"
+        - name: status
+          in: query
+          description: Filter subscriptions by status
+          schema:
+            type: string
+            enum: [ACTIVE, SUSPENDED, CANCELLED]
       responses:
         "200":
           description: OK
@@ -1107,6 +1373,18 @@ paths:
       responses:
         "204":
           $ref: "#/components/responses/NoContent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
       security:
         - BearerAuth: []
 
@@ -1116,6 +1394,38 @@ paths:
         - Subscriptions
       summary: Activates a suspended subscription
       operationId: activateSubscription
+      parameters:
+        - name: subscriptionId
+          in: path
+          required: true
+          description: Unique identifier of the subscription
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "400":
+          $ref: "#/components/responses/BadRequest"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+
+  /subscriptions/{subscriptionId}/cancel:
+    post:
+      tags:
+        - Subscriptions
+      summary: Cancels a subscription
+      operationId: cancelSubscription
       parameters:
         - name: subscriptionId
           in: path
@@ -1152,6 +1462,12 @@ paths:
         - $ref: "#/components/parameters/PageParam"
         - $ref: "#/components/parameters/SizeParam"
         - $ref: "#/components/parameters/SortParam"
+        - name: status
+          in: query
+          description: Filter towers by status
+          schema:
+            type: string
+            enum: [ACTIVE, INACTIVE, MAINTENANCE, DELETED]
       responses:
         "200":
           description: OK
@@ -1235,6 +1551,35 @@ paths:
       security:
         - BearerAuth: []
 
+    delete:
+      tags:
+        - Towers
+      summary: Deletes a tower by ID
+      operationId: deleteTower
+      parameters:
+        - name: towerId
+          in: path
+          required: true
+          description: Unique identifier of the tower
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+
   /towers/{towerId}/sectors:
     get:
       tags:
@@ -1308,6 +1653,43 @@ paths:
       security:
         - BearerAuth: []
 
+  /towers/{towerId}/sectors/{sectorId}:
+    delete:
+      tags:
+        - Towers
+      summary: Deletes a sector by ID
+      operationId: deleteSector
+      parameters:
+        - name: towerId
+          in: path
+          required: true
+          description: Unique identifier of the tower
+          schema:
+            type: integer
+            format: int64
+        - name: sectorId
+          in: path
+          required: true
+          description: Unique identifier of the sector
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+
   /devices:
     get:
       tags:
@@ -1329,7 +1711,7 @@ paths:
           description: Filter devices by status
           schema:
             type: string
-            enum: [ONLINE, OFFLINE, PROVISIONED, DECOMMISSIONED]
+            enum: [ONLINE, OFFLINE, PROVISIONED, DECOMMISSIONED, DELETED]
       responses:
         "200":
           description: OK
@@ -1411,6 +1793,35 @@ paths:
       security:
         - BearerAuth: []
 
+    delete:
+      tags:
+        - Network devices
+      summary: Deletes a network device by ID
+      operationId: deleteNetworkDevice
+      parameters:
+        - name: deviceId
+          in: path
+          required: true
+          description: Unique identifier of the network device
+          schema:
+            type: integer
+            format: int64
+      responses:
+        "204":
+          $ref: "#/components/responses/NoContent"
+        "401":
+          $ref: "#/components/responses/Unauthorized"
+        "403":
+          $ref: "#/components/responses/Forbidden"
+        "404":
+          $ref: "#/components/responses/NotFound"
+        "422":
+          $ref: "#/components/responses/UnprocessableEntity"
+        "500":
+          $ref: "#/components/responses/InternalServerError"
+      security:
+        - BearerAuth: []
+
   /devices/{deviceId}/assign:
     post:
       tags:
@@ -1465,15 +1876,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  customer_id:
-                    type: integer
-                    description: Unique identifier of the customer
-                  balance:
-                    type: number
-                    format: decimal
-                    description: Current account balance
+                $ref: "#/components/schemas/BalanceResponse"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -1769,8 +2172,8 @@ paths:
             type: integer
             format: int64
       responses:
-        "201":
-          $ref: "#/components/responses/Created"
+        "204":
+          $ref: "#/components/responses/NoContent"
         "400":
           $ref: "#/components/responses/BadRequest"
         "401":
@@ -1795,6 +2198,7 @@ components:
         password:
           description: User's password
           type: string
+          format: password
         device_fingerprint:
           description: Device fingerprint used to identify the client device
           type: string
@@ -1827,9 +2231,11 @@ components:
         password:
           description: New password for the user account
           type: string
+          format: password
         confirm_password:
           description: Confirmation of the new password
           type: string
+          format: password
       required:
         - password
         - confirm_password
@@ -1840,12 +2246,15 @@ components:
         current_password:
           description: User's current password
           type: string
+          format: password
         new_password:
           description: New password for the user account
           type: string
+          format: password
         confirm_password:
           description: Confirmation of the new password
           type: string
+          format: password
       required:
         - current_password
         - new_password
@@ -1863,10 +2272,14 @@ components:
         expires_in_days:
           type: integer
           description: Number of days until the API key expires
+          minimum: 1
 
     PagedUsersResponse:
       type: object
       description: Paginated list of users response
+      required:
+        - items
+        - pagination
       properties:
         items:
           type: array
@@ -2037,6 +2450,55 @@ components:
           $ref: "#/components/schemas/PaginationResponse"
           description: Pagination metadata for the current result set
 
+    CreateUserRequest:
+      type: object
+      description: Request body for creating a new staff user account
+      required:
+        - first_name
+        - last_name
+        - email
+        - password
+        - role_ids
+      properties:
+        first_name:
+          type: string
+          description: User's first name
+        last_name:
+          type: string
+          description: User's last name
+        email:
+          type: string
+          format: email
+          description: User's email address
+        password:
+          type: string
+          format: password
+          description: User account password
+          minLength: 8
+        role_ids:
+          type: array
+          description: Identifiers of the roles assigned to the user
+          items:
+            type: integer
+            format: int64
+
+    UpdateUserRequest:
+      type: object
+      description: Fields that can be updated for a staff user
+      properties:
+        first_name:
+          type: string
+          description: User's first name
+        last_name:
+          type: string
+          description: User's last name
+        role_ids:
+          type: array
+          description: Identifiers of the roles assigned to the user
+          items:
+            type: integer
+            format: int64
+
     CreateCustomerRequest:
       type: object
       description: Request body for registering a new customer account
@@ -2078,6 +2540,7 @@ components:
       properties:
         plan_id:
           type: integer
+          format: int64
           description: Service plan identifier
         username:
           type: string
@@ -2087,12 +2550,15 @@ components:
           description: PPPoE password for the subscription
         customer_id:
           type: integer
+          format: int64
           description: Customer identifier
         customer_address_id:
           type: integer
+          format: int64
           description: Customer address identifier
         device_id:
           type: integer
+          format: int64
           description: Network device identifier to assign
 
     UpdateSubscriptionRequest:
@@ -2101,6 +2567,7 @@ components:
       properties:
         plan_id:
           type: integer
+          format: int64
           description: Updated service plan identifier
 
     AssignDeviceRequest:
@@ -2111,6 +2578,7 @@ components:
       properties:
         customer_id:
           type: integer
+          format: int64
           description: Customer identifier to assign to the device
 
     CreateTopupRequest:
@@ -2230,6 +2698,9 @@ components:
         street_number:
           description: Street number of the address
           type: string
+        apartment_number:
+          description: Apartment or suite number
+          type: string
         sublocality:
           description: Neighborhood or sublocality of the address
           type: string
@@ -2344,6 +2815,7 @@ components:
       properties:
         id:
           type: integer
+          format: int64
           description: Unique identifier for the user
         first_name:
           type: string
@@ -2372,6 +2844,7 @@ components:
       properties:
         id:
           type: integer
+          format: int64
           description: Unique identifier for the user
         first_name:
           type: string
@@ -2410,7 +2883,6 @@ components:
       properties:
         id:
           type: integer
-          format: int8
           description: Unique identifier for the role
         type:
           type: string
@@ -2419,12 +2891,26 @@ components:
           type: string
           description: Description of the role
 
+    BalanceResponse:
+      type: object
+      description: Customer account balance information
+      properties:
+        customer_id:
+          type: integer
+          format: int64
+          description: Unique identifier of the customer
+        balance:
+          type: number
+          format: decimal
+          description: Current account balance
+
     CustomerResponse:
       type: object
       description: Customer account information
       properties:
         id:
           type: integer
+          format: int64
           description: Unique customer identifier
         first_name:
           type: string
@@ -2466,6 +2952,7 @@ components:
       properties:
         id:
           type: integer
+          format: int64
           description: Unique identifier for the address
         street_name:
           type: string
@@ -2496,6 +2983,7 @@ components:
           description: Whether the address is default
         customer_id:
           type: integer
+          format: int64
           description: Foreign key to customers table
         created_at:
           type: string
@@ -2505,6 +2993,26 @@ components:
           type: string
           format: date-time
           description: Timestamp when the address was last updated
+        deleted_at:
+          type: ["string", "null"]
+          format: date-time
+          description: Timestamp when the address was deleted (soft delete)
+
+    PagedCustomerAddressResponse:
+      type: object
+      description: Paginated response containing a list of customer addresses and pagination metadata
+      required:
+        - items
+        - pagination
+      properties:
+        items:
+          type: array
+          description: Addresses for the current page
+          items:
+            $ref: "#/components/schemas/CustomerAddressResponse"
+        pagination:
+          $ref: "#/components/schemas/PaginationResponse"
+          description: Pagination metadata for the current result set
 
     ServicePlanResponse:
       type: object
@@ -2512,6 +3020,7 @@ components:
       properties:
         id:
           type: integer
+          format: int64
           description: Unique plan identifier
         name:
           type: string
@@ -2559,21 +3068,26 @@ components:
       properties:
         id:
           type: integer
+          format: int64
           description: Unique subscription identifier
         customer_id:
           type: integer
+          format: int64
           description: ID of the customer who owns this subscription
         customer_address_id:
           type: integer
+          format: int64
           description: Customer address used by the subscription
         plan_id:
           type: integer
+          format: int64
           description: Service plan identifier
         plan:
           $ref: "#/components/schemas/ServicePlanResponse"
           description: Service plan assigned to the subscription
         device_id:
           type: ["integer", "null"]
+          format: int64
           description: Assigned network device identifier
         username:
           type: string
@@ -2614,6 +3128,7 @@ components:
       properties:
         id:
           type: integer
+          format: int64
           description: Unique tower identifier
         name:
           type: string
@@ -2660,9 +3175,11 @@ components:
       properties:
         id:
           type: integer
+          format: int64
           description: Unique sector identifier
         tower_id:
           type: integer
+          format: int64
           description: ID of the parent tower
         name:
           type: string
@@ -2708,6 +3225,7 @@ components:
       properties:
         id:
           type: integer
+          format: int64
           description: Unique device identifier
         mac_address:
           type: string
@@ -2733,9 +3251,11 @@ components:
           description: Device IP address
         sector_id:
           type: ["integer", "null"]
+          format: int64
           description: ID of the sector this device is assigned to
         customer_id:
           type: ["integer", "null"]
+          format: int64
           description: ID of the customer who owns this device
         status:
           type: string
@@ -2760,9 +3280,11 @@ components:
       properties:
         id:
           type: integer
+          format: int64
           description: Unique transaction identifier
         customer_id:
           type: integer
+          format: int64
           description: ID of the customer associated with this transaction
         type:
           type: string
@@ -2793,6 +3315,7 @@ components:
       properties:
         id:
           type: integer
+          format: int64
           description: Unique invoice identifier
         invoice_number:
           type: string
@@ -2802,9 +3325,11 @@ components:
           description: Invoice notes
         customer_id:
           type: integer
+          format: int64
           description: ID of the customer invoiced
         subscription_id:
           type: ["integer", "null"]
+          format: int64
           description: ID of the subscription this invoice is for
         amount:
           type: number
@@ -2837,6 +3362,7 @@ components:
       properties:
         id:
           type: integer
+          format: int64
           description: Unique API key identifier
         name:
           type: string
@@ -2862,18 +3388,32 @@ components:
           format: date-time
           description: Timestamp when the API key was last updated
 
+    CreateApiKeyResponse:
+      allOf:
+        - $ref: "#/components/schemas/ApiKeyResponse"
+        - type: object
+          description: API key creation response, including the plaintext key. The key value is only ever returned here and cannot be retrieved again afterwards.
+          required:
+            - key
+          properties:
+            key:
+              type: string
+              description: Plaintext API key value. Shown only once, at creation time; store it securely.
+
     TicketResponse:
       type: object
       description: Support ticket information
       properties:
         id:
           type: integer
+          format: int64
           description: Unique ticket identifier
         ticket_number:
           type: string
           description: Human-readable ticket number
         customer_id:
           type: integer
+          format: int64
           description: ID of the customer who created the ticket
         category:
           type: string
@@ -2918,6 +3458,7 @@ components:
               description: Detailed description of the support issue
             assigned_to:
               type: ["integer", "null"]
+              format: int64
               description: Identifier of the user assigned to the ticket
             messages:
               type: array
@@ -2928,9 +3469,11 @@ components:
                 properties:
                   id:
                     type: integer
+                    format: int64
                     description: Ticket message identifier
                   user_type:
                     type: string
+                    enum: [CUSTOMER, STAFF]
                     description: Type of actor who sent the message
                   message:
                     type: string
@@ -3011,7 +3554,7 @@ components:
       schema:
         type: integer
         format: int32
-        default: 25
+        default: 10
 
     SortParam:
       name: sort
